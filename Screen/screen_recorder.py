@@ -6,18 +6,30 @@ import numpy as np
 
 class ScreenRecorder:
     def __init__(self, data_socket: socket, window_name: str):
+        """
+        Sending and receiving the screen
+        :param data_socket: Socket used for sending, must be connected/bound
+        :param window_name: Window name for the window
+        """
+
         self._window_name = window_name
         self._data_socket = data_socket
         self._stop_request = False
         cv.namedWindow(self._window_name, cv.WINDOW_NORMAL)
 
     def start_sending(self):
+        """
+        Start sending the screen
+        """
         self._data_socket.sendall(bytes(str(Screenshot.get().size), encoding="UTF-8"))
         while not self._stop_request:
             self._data_socket.recv(10)
             self._data_socket.sendall(Screenshot.get().tobytes())
 
     def start_receiving(self):
+        """
+        Start receiving the screen
+        """
         self._data_socket.listen(1)
         conn, address = self._data_socket.accept()
 

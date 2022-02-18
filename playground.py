@@ -1,12 +1,6 @@
-import cv2 as cv
-from Screen.screenshot import Screenshot
+import cv2
 
 if __name__ == "__main__":
-
-    img = Screenshot.get()
-    cv.imshow('img', img)
-    cv.waitKey()
-
-    img = Screenshot.get()
-    cv.imshow('img', img)
-    cv.waitKey()
+    cursor_image = cv2.imread("Images/cursor.png", cv2.IMREAD_GRAYSCALE)
+    cv2.imshow("cursor", cursor_image)
+    cv2.waitKey()

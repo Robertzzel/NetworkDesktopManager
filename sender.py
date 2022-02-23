@@ -9,4 +9,4 @@ if __name__ == "__main__":
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect(ADDRESS)
 
-    ScreenRecorder(sock, "Live").start_sending()
+    ScreenRecorder(sock).start_sending()

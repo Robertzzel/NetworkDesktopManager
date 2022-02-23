@@ -19,6 +19,7 @@ class ScreenshotTool:
                                       cursor_x: cursor_x + cursor_image.shape[1]] = cursor_image
         except:
             pass
+
         return screenshot_without_cursor
 
     @staticmethod

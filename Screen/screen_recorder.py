@@ -9,7 +9,7 @@ class ScreenRecorder:
         self._mouse_address = mouse_address
         self._images_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._mouse_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._connection = None
+        self._connection: socket.socket = None
         self._stop_request = False
         self._screenshot_tool = ScreenshotTool()
 
@@ -31,17 +31,17 @@ class ScreenRecorder:
         self._send_screen_shape()
 
         while not self._stop_request:
-            self._images_socket.recv(10)
+            self._images_socket.recv(4)
             self._images_socket.sendall(self._screenshot_tool.get_screenshot().tobytes())
 
     def _send_screen_shape(self):
         screen_shape_string = self._get_screen_shape_string()
-        self._images_socket.sendall(bytes(screen_shape_string, encoding="UTF-8"))
+        self._images_socket.sendall(screen_shape_string.encode())
 
     def _get_screen_shape_string(self):
-        screen_shape_list = map(lambda number: str(number), self._screenshot_tool.get_screen_shape())
-        return ",".join(screen_shape_list)
+        return str(self._screenshot_tool.get_screen_shape()).replace(" ", "")[1:-1]
 
     def stop(self):
         self._stop_request = True
         self._images_socket.sendall(b"exit")
+        self._connection.close()

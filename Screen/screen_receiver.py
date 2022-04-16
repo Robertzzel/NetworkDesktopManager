@@ -36,6 +36,7 @@ class ScreenReceiver:
             self._connection.sendall(b"send")
             message_received = self._connection.recv(screen_size)
             if message_received == b"exit":
+                self.stop()
                 break
             image = self.create_image(message_received, screen_shape)
             self.show_image(image)
@@ -49,7 +50,7 @@ class ScreenReceiver:
 
     @staticmethod
     def receive_screen_shape(connection):
-        received_shape_string = str(connection.recv(20), encoding="UTF-8")
+        received_shape_string = connection.recv(20).decode()
         received_shape_list = tuple(map(lambda number: int(number), received_shape_string.split(",")))
         return received_shape_list
 

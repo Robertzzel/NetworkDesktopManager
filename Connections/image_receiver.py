@@ -8,18 +8,16 @@ class ImageReceiver:
     def __init__(self, address):
         self._address = address
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._socket.bind(address)
-        self._sender_connection = None
+        self._stop_sending = False
 
     def connect(self):
-        self._socket.listen()
-        self._sender_connection, _ = self._socket.accept()
+        self._socket.connect(self._address)
 
     def start_receiving(self):
-        while True:
-            length = int(self._sender_connection.recv(6).decode())
-            self._sender_connection.send(b"X")
-            encoded_image_string = self._sender_connection.recv(length)
+        while not self._stop_sending:
+            length = int(self._socket.recv(6).decode())
+            self._socket.send(b"X")
+            encoded_image_string = self._socket.recv(length).decode()
 
             if encoded_image_string == b"exit":
                 self._stop()
@@ -33,4 +31,5 @@ class ImageReceiver:
         return cv2.imdecode(encoded_image, 1)
 
     def _stop(self):
-        self._sender_connection.close()
+        self._stop_sending = True
+        self._socket.sendall(b"exit")

@@ -1,10 +1,10 @@
 import time
 import threading
-from Commons.computer import Computer
 from Screen.server import Server
+from configurations import Configurations
 
-ADDRESS = (Computer.get_wifi_ip_address(), 5001)
-ADDRESS_MOUSE = (Computer.get_wifi_ip_address(), 5002)
+ADDRESS = (Configurations.SERVER_IP, 5001)
+ADDRESS_MOUSE = (Configurations.SERVER_IP, 5002)
 
 
 def stop(sr):

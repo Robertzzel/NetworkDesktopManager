@@ -11,7 +11,9 @@ class ImageReceiver:
         self._stop_sending = False
 
     def connect(self):
+        print(f"tring to connect to {self._address}")
         self._socket.connect(self._address)
+        print("connected")
 
     def start_receiving(self):
         while not self._stop_sending:
@@ -23,7 +25,11 @@ class ImageReceiver:
                 self._stop()
                 break
 
-            yield self._decode_image_string(encoded_image_string)
+            try:
+                image = self._decode_image_string(encoded_image_string)
+                yield image
+            except:
+                pass
 
     def _decode_image_string(self, image_string: str):
         decoded_image_string = base64.b64decode(image_string)

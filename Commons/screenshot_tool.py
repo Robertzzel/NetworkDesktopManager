@@ -1,12 +1,10 @@
 import cv2
 import pyautogui
 import numpy as np
-from pathlib import Path
+from configurations import Configurations
 
 
 class ScreenshotTool:
-    CURSOR_PATH = f"{Path(__file__).parent.parent}\\Images\\cursor.jpg"
-
     def __init__(self):
         self._screen_shape = np.array(pyautogui.screenshot()).shape
         self.cursor_image = self.get_cursor_image()
@@ -30,7 +28,7 @@ class ScreenshotTool:
         return bgr_image
 
     def get_cursor_image(self):
-        cursor_image = cv2.imread(self.CURSOR_PATH)
+        cursor_image = cv2.imread(Configurations.CURSOR_IMAGE_PATH)
         #cv2.cvtColor(cursor_image, cv2.COLOR_BGR2BGRA)
         return cursor_image
 

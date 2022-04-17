@@ -3,6 +3,7 @@ import socket
 import cv2
 import numpy as np
 from Commons.screenshot_tool import ScreenshotTool
+from configurations import Configurations
 
 
 class ImageSender:
@@ -14,8 +15,10 @@ class ImageSender:
         self._tool = ScreenshotTool()
 
     def connect(self):
+        print(f"Listening at {self._address}")
         self._socket.listen()
         self._sender_connection, _ = self._socket.accept()
+        print(f"Connected to {_}")
 
     def start_sending(self):
         while True:
@@ -26,7 +29,7 @@ class ImageSender:
             self._sender_connection.sendall(encoded_image)
 
     def _encode_image(self, image: np.ndarray) -> (bytes, int):
-        status, encoded = cv2.imencode(".jpg", image)
+        status, encoded = cv2.imencode(Configurations.IMAGES_TYPE, image)
         data = np.array(encoded)
         string_data = base64.b64encode(data)
         return string_data, len(str(string_data))

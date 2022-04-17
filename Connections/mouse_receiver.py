@@ -15,4 +15,22 @@ class MouseReceiver:
         self._sender_connection, _ = self._socket.accept()
 
     def start_receiving(self):
-        data = self._sender_connection.recv(1)
+        data = self._sender_connection.recv(32).decode()
+        self._sender_connection.sendall(b"X")
+        action, details = data.split(":")
+        if action == "click":
+            if details == "Button.left":
+                print("click stanga")
+                #self._mouse_tool.left_click()
+            elif details == "Button.right":
+                print("click drapta")
+                #self._mouse_tool.right_click()
+            else:
+                print("click necunoscut")
+        elif action == "move":
+            print("MOVE")
+        else:
+            print("action 404")
+
+
+

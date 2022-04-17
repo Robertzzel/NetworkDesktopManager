@@ -26,8 +26,11 @@ class ImageSender:
 
             self._sender_connection.recv(1)
             self._sender_connection.sendall(str(length).encode())
+
             self._sender_connection.recv(1)
             self._sender_connection.sendall(encoded_image)
+
+            self._sender_connection.recv(1)
 
     def _encode_image(self, image: np.ndarray) -> (bytes, int):
         status, encoded = cv2.imencode(Configurations.IMAGES_TYPE, image)

@@ -2,6 +2,7 @@ import socket
 import base64
 import cv2
 import numpy as np
+from select import select
 
 
 class ImageReceiver:
@@ -17,10 +18,16 @@ class ImageReceiver:
 
     def start_receiving(self):
         while not self._stop_sending:
-            self._socket.send(b"X")
-            length = int(self._socket.recv(6).decode())
-            self._socket.send(b"X")
+
+            self._socket.sendall(b"X")
+            length = self._socket.recv(6).decode()
+            length = int(length)
+
+            self._socket.sendall(b"X")
             encoded_image_string = self._socket.recv(length).decode()
+
+            self._socket.sendall(b"X")
+            self.clean_input(length)
 
             if encoded_image_string == b"exit":
                 self._stop()
@@ -40,3 +47,10 @@ class ImageReceiver:
     def _stop(self):
         self._stop_sending = True
         self._socket.sendall(b"exit")
+
+    def clean_input(self, length):
+        can_read = select([self._socket], [], [], 0)[0]
+        if can_read:
+            self._socket.recv(length)
+        else:
+            pass

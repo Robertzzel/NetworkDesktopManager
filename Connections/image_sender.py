@@ -2,7 +2,7 @@ import base64
 import socket
 import cv2
 import numpy as np
-from Screen.screenshot_tool import ScreenshotTool
+from Commons.screenshot_tool import ScreenshotTool
 
 
 class ImageSender:
@@ -13,6 +13,7 @@ class ImageSender:
         self._stop_sending = False
 
     def connect(self):
+        print("")
         self._socket.connect(self._address)
 
     def start_sending(self):

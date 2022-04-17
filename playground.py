@@ -1,16 +1,9 @@
-import time
+import pynput
 
-import cv2
-
-class D:
-    def __init__(self):
-        self.D = 2
-
-def f():
-    for _ in range(5):
-        time.sleep(1)
-        yield D()
+def oc(x, y, button, pressed):
+    print(f"clicked: {x}, {y}, {button}, {pressed}")
 
 if __name__ == "__main__":
-    for i in f():
-        print(i.D)
+    with pynput.mouse.Listener(on_click = oc) as listener:
+        listener.join()
+    print("sal")

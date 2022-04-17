@@ -17,6 +17,7 @@ class ImageReceiver:
 
     def start_receiving(self):
         while not self._stop_sending:
+            self._socket.send(b"X")
             length = int(self._socket.recv(6).decode())
             self._socket.send(b"X")
             encoded_image_string = self._socket.recv(length).decode()

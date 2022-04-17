@@ -24,6 +24,7 @@ class ImageSender:
         while True:
             encoded_image, length = self._encode_image(self._tool.get_screenshot())
 
+            self._sender_connection.recv(1)
             self._sender_connection.sendall(str(length).encode())
             self._sender_connection.recv(1)
             self._sender_connection.sendall(encoded_image)

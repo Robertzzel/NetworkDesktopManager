@@ -22,13 +22,13 @@ class MouseReceiver:
             action, details = data.split(":")
             if action == "click":
                 button, pressed = details.split(",")
-                if details == "Button.left":
-                    if pressed:
+                if button == "Button.left":
+                    if pressed == "True":
                         self._mouse_tool.left_press()
                     else:
                         self._mouse_tool.left_release()
-                elif details == "Button.right":
-                    if pressed:
+                elif button == "Button.right":
+                    if pressed == "True":
                         self._mouse_tool.right_press()
                     else:
                         self._mouse_tool.right_release()

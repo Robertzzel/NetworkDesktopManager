@@ -1,4 +1,4 @@
-class ImageConnection:
+class MouseSender:
     def __init__(self):
         pass
 

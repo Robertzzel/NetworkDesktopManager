@@ -1,4 +1,7 @@
+import base64
 import socket
+import cv2
+import numpy as np
 from Screen.screenshot_tool import ScreenshotTool
 
 
@@ -12,19 +15,26 @@ class ImageSender:
     def connect(self):
         self._socket.connect(self._address)
 
+    def start_sending(self):
+        while not self._stop_sending:
+            encoded_image, length = self._encode_image(self._tool.get_screenshot())
+
+            self._socket.sendall(str(length).encode())
+            self._socket.recv(1)
+            self._socket.sendall(encoded_image)
+
     def _send_image_shape(self):
         screen_shape_string = self._get_image_shape_string()
         self._socket.sendall(screen_shape_string.encode())
 
+    def _encode_image(self, image: np.ndarray) -> (bytes, int):
+        status, encoded = cv2.imencode(".jpg", image)
+        data = np.array(encoded)
+        string_data = base64.b64encode(data)
+        return string_data, len(str(string_data))
+
     def _get_image_shape_string(self):
         return str(self._tool.get_screen_shape()).replace(" ", "")[1:-1]
-
-    def start_sending(self):
-        self._send_image_shape()
-
-        while not self._stop_sending:
-            self._socket.recv(4)  # send signal
-            self._socket.sendall(self._tool.get_screenshot().tobytes())
 
     def stop(self):
         self._stop_sending = True

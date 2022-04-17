@@ -1,4 +1,3 @@
-from socket import socket
 from Connections.image_sender import ImageSender
 import socket
 

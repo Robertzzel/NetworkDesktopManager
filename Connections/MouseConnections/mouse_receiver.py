@@ -19,7 +19,7 @@ class MouseReceiver(BaseConnection):
     def start_receiving(self):
         while True:
             #data = self.receive_message(self._sender_connection, Configurations.MOUSE_MAX_SIZE).decode()
-            data = self._socket.recvfrom(100)
+            data = self._socket.recvfrom(100)[0].decode()
             action, details = data.split(":")
             if action == "click":
                 button, pressed = details.split(",")

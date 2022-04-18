@@ -18,26 +18,29 @@ class ImageReceiver:
 
     def start_receiving(self):
         while not self._stop_sending:
-
-            self._socket.sendall(b"X")
-            length = self._socket.recv(6).decode()
+            length = self._socket.recv(8).decode()
             length = int(length)
 
-            self._socket.sendall(b"X")
-            encoded_image_string = self._socket.recv(length).decode()
-
-            self._socket.sendall(b"X")
-            self.clean_input(length)
+            encoded_image_string = self.recv_all(self._socket, length)
 
             if encoded_image_string == b"exit":
                 self._stop()
                 break
 
             try:
-                image = self._decode_image_string(encoded_image_string)
+                image = self._decode_image_string(encoded_image_string.decode())
                 yield image
             except:
                 pass
+
+    def recv_all(self, sock: socket.socket, n):
+        final = bytearray()
+        received = 0
+        while received < n:
+            received_data = sock.recv(n - received)
+            final += received_data
+            received += len(received_data)
+        return final
 
     def _decode_image_string(self, image_string: str):
         decoded_image_string = base64.b64decode(image_string)
@@ -47,10 +50,3 @@ class ImageReceiver:
     def _stop(self):
         self._stop_sending = True
         self._socket.sendall(b"exit")
-
-    def clean_input(self, length):
-        can_read = select([self._socket], [], [], 0)[0]
-        if can_read:
-            self._socket.recv(length)
-        else:
-            pass

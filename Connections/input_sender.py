@@ -39,4 +39,4 @@ class InputSender(BaseConnection):
         self.send_message(self._socket, f"{InputActions.MOVE.value}:{x},{y}".encode(), Configurations.INPUT_MAX_SIZE)
 
     def _on_click(self,x, y, button, pressed):
-        self.send_message(self._socket, f"{InputActions.CLICK.value}:{button},{pressed},{x},{y}".encode(), Configurations.INPUT_MAX_SIZE)
+        self.send_message(self._socket, f"{InputActions.CLICK.value}:{button},{pressed}".encode(), Configurations.INPUT_MAX_SIZE)

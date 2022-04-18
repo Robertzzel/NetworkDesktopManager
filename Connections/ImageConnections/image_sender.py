@@ -6,7 +6,6 @@ from Commons.ImageOperations import ImageOperations
 
 
 class ImageSender(BaseConnection):
-    CURSOR_POSITIONS = (None, None)
 
     def __init__(self, address):
         self._address = address
@@ -23,8 +22,7 @@ class ImageSender(BaseConnection):
 
     def start_sending(self):
         while True:
-            encoded_image = ImageOperations.encode(self._tool.get_screenshot(self.CURSOR_POSITIONS[0],
-                                                                             self.CURSOR_POSITIONS[1]))
+            encoded_image = ImageOperations.encode(self._tool.get_screenshot())
             self.send_message(self._sender_connection, encoded_image, Configurations.LENGTH_MAX_SIZE)
 
     def stop(self):

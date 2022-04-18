@@ -19,10 +19,10 @@ class InputReceiver(BaseConnection):
         self._sender_connection = None
 
         self.click_mapper = {
-            "Button.left,True": self._mouse.left_press,
-            "Button.left,False": self._mouse.left_release,
-            "Button.right,True": self._mouse.right_press,
-            "Button.right,False": self._mouse.right_release
+            "Button.leftTrue": self._mouse.left_press,
+            "Button.leftFalse": self._mouse.left_release,
+            "Button.rightTrue": self._mouse.right_press,
+            "Button.rightFalse": self._mouse.right_release
         }
 
     def connect(self):
@@ -42,7 +42,7 @@ class InputReceiver(BaseConnection):
 
             if action == InputActions.MOVE:
                 x, y = details.split(",")
-                ImageSender.CURSOR_POSITIONS = (int(x), int(y))
+                self._mouse.move_pointer(x,y)
             elif action == InputActions.PRESS:
                 print("press" + details)
                 self._keyboard.press_letter(details)
@@ -50,8 +50,7 @@ class InputReceiver(BaseConnection):
                 print("release" + details)
                 self._keyboard.release_letter(details)
             elif action == InputActions.CLICK:
-                button, pressed, x, y = details.split(",")
-                self._mouse.move_pointer(int(x), int(y))
-                self.click_mapper[details]()
+                button, pressed = details.split(",")
+                self.click_mapper[f"{button}{pressed}"]()
             else:
                 print("action 404")

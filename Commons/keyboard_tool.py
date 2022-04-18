@@ -7,10 +7,8 @@ class KeyboardTool:
         self._controller = Controller()
 
     def listen_keyboard(self, on_press, on_release):
-        listener = Listener(
-            on_press=on_press,
-            on_release=on_release)
-        listener.start()
+        with Listener(on_press=on_press, on_release=on_release) as listener:
+            listener.join()
 
     def press_letter(self, letter: str):
         try:

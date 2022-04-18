@@ -10,18 +10,13 @@ class MouseSender(BaseConnection):
         self._address = address
         self._socket = socket(AF_INET, SOCK_DGRAM)
 
-    # def connect(self):
-    #     self._socket.connect(self._address)
-
     def start_sending(self):
         self._mouse_tool.listen_for_clicks(on_move=self._on_move,
                                            on_click=self._on_click)
 
     def _on_move(self, x, y):
-        #self.send_message(self._socket, f"move:{x},{y}".encode(), Configurations.MOUSE_MAX_SIZE)
         self._socket.sendto(f"move:{x},{y}".encode(), self._address)
 
     def _on_click(self, x, y, button, pressed):
-        #self.send_message(self._socket, f"click:{button},{pressed}".encode(), Configurations.MOUSE_MAX_SIZE)
         self._socket.sendto(f"click:{button},{pressed}".encode(), self._address)
 

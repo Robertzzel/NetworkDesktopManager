@@ -6,10 +6,8 @@ from numpy import frombuffer, uint8, ndarray
 class ImageOperations:
     @staticmethod
     def encode(image: ndarray) -> bytes:
-        status, encoded = imencode(Configurations.IMAGES_TYPE, image)
-        return encoded
+        return imencode(Configurations.IMAGES_TYPE, image)[1]
 
     @staticmethod
     def decode(encoded_image: bytes) -> ndarray:
-        encoded_image = frombuffer(encoded_image, uint8)
-        return imdecode(encoded_image, IMREAD_COLOR)
+        return imdecode(frombuffer(encoded_image, uint8), IMREAD_COLOR)

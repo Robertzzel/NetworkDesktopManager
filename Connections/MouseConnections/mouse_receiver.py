@@ -10,17 +10,12 @@ class MouseReceiver(BaseConnection):
         self._address = address
         self._socket = socket(AF_INET, SOCK_DGRAM)
         self._socket.bind(address)
-        # self._sender_connection: socket.socket = None
-
-    # def connect(self):
-    #     self._socket.listen()
-    #     self._sender_connection, _ = self._socket.accept()
 
     def start_receiving(self):
         while True:
-            #data = self.receive_message(self._sender_connection, Configurations.MOUSE_MAX_SIZE).decode()
             data = self._socket.recvfrom(100)[0].decode()
             action, details = data.split(":")
+
             if action == "click":
                 button, pressed = details.split(",")
                 if button == "Button.left":

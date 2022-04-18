@@ -1,5 +1,5 @@
 from pynput.keyboard import Controller, Key
-from pynput import keyboard
+from pynput.keyboard import Listener
 
 
 class KeyboardTool:
@@ -7,7 +7,7 @@ class KeyboardTool:
         self._controller = Controller()
 
     def listen_keyboard(self, on_press, on_release):
-        listener = keyboard.Listener(
+        listener = Listener(
             on_press=on_press,
             on_release=on_release)
         listener.start()

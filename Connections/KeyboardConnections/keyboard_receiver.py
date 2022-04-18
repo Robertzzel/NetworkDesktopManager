@@ -1,16 +1,16 @@
 from Connections.base_connection import BaseConnection
 from configurations import Configurations
 from Commons.keyboard_tool import KeyboardTool
-import socket
+from socket import socket, AF_INET, SOCK_STREAM
 
 
 class KeyboadReceiver(BaseConnection):
     def __init__(self, address):
         self._address = address
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._socket = socket(AF_INET, SOCK_STREAM)
         self._socket.bind(address)
         self._keyboard = KeyboardTool()
-        self._sender_connection: socket.socket = None
+        self._sender_connection: socket = None
 
     def connect(self):
         print(f"Keyboard:Listening at {self._address}")

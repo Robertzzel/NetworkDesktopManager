@@ -1,5 +1,4 @@
-import cv2 as cv
-from threading import Thread
+from cv2 import namedWindow, WINDOW_NORMAL, imshow, waitKey
 from Connections.ImageConnections.image_receiver import ImageReceiver
 from Connections.MouseConnections.mouse_sender import MouseSender
 from Connections.KeyboardConnections.keyboard_sender import KeyboardSender
@@ -12,7 +11,7 @@ class Client:
         self._keyboard_sender = KeyboardSender(keyboard_address)
 
         self._window_name = window_name
-        cv.namedWindow(self._window_name, cv.WINDOW_NORMAL)
+        namedWindow(self._window_name, WINDOW_NORMAL)
 
     def start(self):
         self._images_receiver.connect()
@@ -29,5 +28,5 @@ class Client:
         self._mouse_sender.start_sending()
 
     def show_image(self, image):
-        cv.imshow(self._window_name, image)
-        cv.waitKey(1)
+        imshow(self._window_name, image)
+        waitKey(1)

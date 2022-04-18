@@ -1,6 +1,5 @@
 from Connections.ImageConnections.image_sender import ImageSender
 from Connections.MouseConnections.mouse_receiver import MouseReceiver
-from threading import Thread
 from Connections.KeyboardConnections.keyboard_receiver import KeyboadReceiver
 
 

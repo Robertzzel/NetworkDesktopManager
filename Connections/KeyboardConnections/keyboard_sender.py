@@ -1,13 +1,13 @@
 from Connections.base_connection import BaseConnection
 from configurations import Configurations
 from Commons.keyboard_tool import KeyboardTool
-import socket
+from socket import socket, AF_INET, SOCK_STREAM
 
 
 class KeyboardSender(BaseConnection):
     def __init__(self, address):
         self._address = address
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._socket = socket(AF_INET, SOCK_STREAM)
         self._keyboard = KeyboardTool()
 
     def connect(self):

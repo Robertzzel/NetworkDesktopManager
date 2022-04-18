@@ -1,5 +1,4 @@
 from pynput.mouse import Listener, Controller, Button
-from pynput import keyboard
 
 
 class MouseTool:

@@ -1,5 +1,5 @@
 from Commons.mouse_tool import MouseTool
-import socket
+from socket import socket, AF_INET, SOCK_DGRAM
 from Connections.base_connection import BaseConnection
 from configurations import Configurations
 
@@ -8,7 +8,7 @@ class MouseSender(BaseConnection):
     def __init__(self, address):
         self._mouse_tool = MouseTool()
         self._address = address
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._socket = socket(AF_INET, SOCK_DGRAM)
 
     # def connect(self):
     #     self._socket.connect(self._address)

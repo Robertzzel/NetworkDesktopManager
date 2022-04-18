@@ -20,8 +20,8 @@ class InputSender(BaseConnection):
         print("Connected")
 
     def start(self):
-        Thread(target=self._keyboard.listen_keyboard(on_press=self.on_press, on_release=self.on_release)).start()
-        Thread(self._mouse.listen_for_clicks(on_move=self._on_move, on_click=self._on_click)).start()
+        Thread(target=self._keyboard.listen_keyboard, args=(self.on_press, self.on_release,)).start()
+        Thread(target=self._mouse.listen_for_clicks, args=(self._on_move, self._on_click)).start()
 
     def on_press(self, key):
         try:

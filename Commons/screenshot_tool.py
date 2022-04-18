@@ -1,16 +1,18 @@
 from cv2 import imread, cvtColor, COLOR_RGB2BGR, imshow, waitKey
-import pyautogui
+from PIL.ImageGrab import grab
+from pynput.mouse import Controller
 from numpy import array, ndarray
 from configurations import Configurations
 
 
 class ScreenshotTool:
     def __init__(self):
-        self._screen_shape = array(pyautogui.screenshot()).shape
+        self._mouse = Controller()
+        self._screen_shape = array(grab()).shape
         self.cursor_image = self.get_cursor_image()
 
     def get_screenshot(self) -> ndarray:
-        cursor_x, cursor_y = pyautogui.position()
+        cursor_x, cursor_y = self._mouse.position
         image = self.get_screenshot_image()
 
         try:
@@ -22,7 +24,7 @@ class ScreenshotTool:
         return image
 
     def get_screenshot_image(self):
-        rgb_image = pyautogui.screenshot()
+        rgb_image = grab()
         bgr_image = cvtColor(array(rgb_image), COLOR_RGB2BGR)
         #cv2.cvtColor(bgr_image, cv2.COLOR_BGR2BGRA)
         return bgr_image

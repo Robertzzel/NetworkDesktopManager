@@ -27,13 +27,10 @@ class ImageSender(BaseConnection):
         while True:
             encoded_image = self._encode_image(self._tool.get_screenshot())
             self.send_message(self._sender_connection, encoded_image, Configurations.LENGTH_MAX_SIZE)
-            time.sleep(1/30)
 
     def _encode_image(self, image: np.ndarray) -> bytes:
         status, encoded = cv2.imencode(Configurations.IMAGES_TYPE, image)
-        data = np.array(encoded)
-        string_data: bytes = base64.b64encode(data)
-        return string_data
+        return encoded
 
     def stop(self):
         self._sender_connection.close()

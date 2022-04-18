@@ -12,9 +12,9 @@ class Server:
 
     def start(self):
         self._images_sender.connect()
-        self._keyboard_receiver.connect()
+        #self._keyboard_receiver.connect()
         #Thread(target=self._begin_receiving_mouse_events).start()
-        Thread(target=self._keyboard_receiver.start).start()
+        #Thread(target=self._keyboard_receiver.start).start()
         self._images_sender.start_sending()
 
     def _begin_receiving_mouse_events(self):

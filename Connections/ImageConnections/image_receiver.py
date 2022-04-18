@@ -26,15 +26,14 @@ class ImageReceiver(BaseConnection):
                 break
 
             try:
-                image = self._decode_image_string(encoded_image_string.decode())
+                image = self._decode_image_string(encoded_image_string)
                 yield image
             except:
                 pass
 
-    def _decode_image_string(self, image_string: str):
-        decoded_image_string = base64.b64decode(image_string)
-        encoded_image = np.frombuffer(decoded_image_string, np.uint8)
-        return cv2.imdecode(encoded_image, 1)
+    def _decode_image_string(self, image_string: bytes):
+        encoded_image = np.frombuffer(image_string, np.uint8)
+        return cv2.imdecode(encoded_image, cv2.IMREAD_COLOR)
 
     def _stop(self):
         self._stop_sending = True

@@ -25,18 +25,18 @@ class InputSender(BaseConnection):
 
     def on_press(self, key):
         try:
-            self.send_message(self._socket, f"{InputActions.PRESS}:{key.char}".encode(), Configurations.INPUT_MAX_SIZE)
+            self.send_message(self._socket, f"{InputActions.PRESS.value}:{key.char}".encode(), Configurations.INPUT_MAX_SIZE)
         except AttributeError:
-            self.send_message(self._socket, f"{InputActions.PRESS}:{str(key)}".encode(), Configurations.INPUT_MAX_SIZE)
+            self.send_message(self._socket, f"{InputActions.PRESS.value}:{str(key)}".encode(), Configurations.INPUT_MAX_SIZE)
 
     def on_release(self, key):
         try:
-            self.send_message(self._socket, f"{InputActions.RELEASE}:{key.char}".encode(), Configurations.INPUT_MAX_SIZE)
+            self.send_message(self._socket, f"{InputActions.RELEASE.value}:{key.char}".encode(), Configurations.INPUT_MAX_SIZE)
         except AttributeError:
-            self.send_message(self._socket, f"{InputActions.RELEASE}:{str(key)}".encode(), Configurations.INPUT_MAX_SIZE)
+            self.send_message(self._socket, f"{InputActions.RELEASE.value}:{str(key)}".encode(), Configurations.INPUT_MAX_SIZE)
 
     def _on_move(self, x, y):
-        self.send_message(self._socket, f"{InputActions.MOVE}:{x},{y}".encode(), Configurations.INPUT_MAX_SIZE)
+        self.send_message(self._socket, f"{InputActions.MOVE.value}:{x},{y}".encode(), Configurations.INPUT_MAX_SIZE)
 
-    def _on_click(self, button, pressed):
-        self.send_message(self._socket, f"{InputActions.CLICK}:{button},{pressed}".encode(), Configurations.INPUT_MAX_SIZE)
+    def _on_click(self,x, y, button, pressed):
+        self.send_message(self._socket, f"{InputActions.CLICK.value}:{button},{pressed},{x},{y}".encode(), Configurations.INPUT_MAX_SIZE)

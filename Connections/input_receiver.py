@@ -1,5 +1,4 @@
 from Commons.mouse_tool import MouseTool
-from Connections.ImageConnections.image_sender import ImageSender
 from Connections.base_connection import BaseConnection
 from configurations import Configurations
 from Commons.keyboard_tool import KeyboardTool
@@ -7,6 +6,7 @@ from socket import socket, AF_INET, SOCK_STREAM
 from Commons.input_actions import InputActions
 from threading import Thread
 
+# cursorul nu e la pozitia sageata buna si backspaceul mere de 2 or
 
 class InputReceiver(BaseConnection):
 
@@ -37,9 +37,11 @@ class InputReceiver(BaseConnection):
     def _start_receiving(self):
         while True:
             data = self.receive_message(self._sender_connection, Configurations.INPUT_MAX_SIZE).decode()
-            action, details = data.split(":")
+            try:
+                action, details = data.split(":")
+            except:
+                continue
             action = InputActions(int(action))
-
             if action == InputActions.MOVE:
                 x, y = details.split(",")
                 self._mouse.move_pointer(x,y)

@@ -22,3 +22,5 @@ class MouseTool:
     def right_release(self):
         self._controller.release(Button.right)
 
+    def move_pointer(self,x, y):
+        self._controller.position = (x, y)

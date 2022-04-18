@@ -35,7 +35,8 @@ class MouseReceiver:
                 else:
                     print("click necunoscut")
             elif action == "move":
-                print("MOVE")
+                x, y = details.split(",")
+                self._mouse_tool.move_pointer(int(x), int(y))
             else:
                 print("action 404")
 

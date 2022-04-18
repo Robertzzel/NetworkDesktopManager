@@ -40,7 +40,6 @@ class MouseReceiver(BaseConnection):
                 self._mouse_tool.move_pointer(int(x), int(y))
             else:
                 print("action 404")
-            print("facut")
 
 
 

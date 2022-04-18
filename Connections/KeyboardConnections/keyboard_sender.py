@@ -19,7 +19,14 @@ class KeyboardSender(BaseConnection):
         self._keyboard.listen_keyboard(on_press=self.on_press, on_release=self.on_release)
 
     def on_press(self, key):
-        self.send_message(self._socket, f"press:{key.char}".encode(), Configurations.KEYBOARD_MAX_SIZE)
+        try:
+            self.send_message(self._socket, f"press:{key.char}".encode(), Configurations.KEYBOARD_MAX_SIZE)
+        except AttributeError:
+            msg = str(key.value)
+            self.send_message(self._socket, f"press:{str(key)}".encode(), Configurations.KEYBOARD_MAX_SIZE)
 
     def on_release(self, key):
-        self.send_message(self._socket, f"release:{key.char}".encode(), Configurations.KEYBOARD_MAX_SIZE)
+        try:
+            self.send_message(self._socket, f"release:{key.char}".encode(), Configurations.KEYBOARD_MAX_SIZE)
+        except AttributeError:
+            self.send_message(self._socket, f"release:{str(key)}".encode(), Configurations.KEYBOARD_MAX_SIZE)

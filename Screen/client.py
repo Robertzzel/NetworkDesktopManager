@@ -17,7 +17,7 @@ class Client:
     def start(self):
         self._images_receiver.connect()
         self._keyboard_sender.connect()
-        Thread(target=self._begin_sending_mouse_events).start()
+        #Thread(target=self._begin_sending_mouse_events).start()
         Thread(target=self._keyboard_sender.start).start()
         self._begin_receiving_images()
 

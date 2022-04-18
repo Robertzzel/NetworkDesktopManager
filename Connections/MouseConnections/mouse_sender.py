@@ -20,9 +20,8 @@ class MouseSender(BaseConnection):
     def _on_move(self, x, y):
         #self.send_message(self._socket, f"move:{x},{y}".encode(), Configurations.MOUSE_MAX_SIZE)
         self._socket.sendto(f"move:{x},{y}".encode(), self._address)
-        print("moved", end=" ")
 
     def _on_click(self, x, y, button, pressed):
         #self.send_message(self._socket, f"click:{button},{pressed}".encode(), Configurations.MOUSE_MAX_SIZE)
         self._socket.sendto(f"click:{button},{pressed}".encode(), self._address)
-        print(f"click {button}", end=" ")
+

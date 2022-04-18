@@ -1,15 +1,13 @@
-import socket
-import base64
-import cv2
-import numpy as np
+from socket import socket, AF_INET, SOCK_STREAM
 from configurations import Configurations
 from Connections.base_connection import BaseConnection
+from Commons.ImageOperations import ImageOperations
 
 
 class ImageReceiver(BaseConnection):
     def __init__(self, address):
         self._address = address
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._socket = socket(AF_INET, SOCK_STREAM)
         self._stop_sending = False
 
     def connect(self):
@@ -26,15 +24,10 @@ class ImageReceiver(BaseConnection):
                 break
 
             try:
-                image = self._decode_image_string(encoded_image_string.decode())
+                image = ImageOperations.decode(encoded_image_string)
                 yield image
             except:
                 pass
-
-    def _decode_image_string(self, image_string: str):
-        decoded_image_string = base64.b64decode(image_string)
-        encoded_image = np.frombuffer(decoded_image_string, np.uint8)
-        return cv2.imdecode(encoded_image, 1)
 
     def _stop(self):
         self._stop_sending = True

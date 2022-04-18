@@ -2,7 +2,7 @@ from socket import socket, AF_INET, SOCK_STREAM
 from Commons.screenshot_tool import ScreenshotTool
 from configurations import Configurations
 from Connections.base_connection import BaseConnection
-from Commons.ImageOperations import ImageOperations
+from Commons.image_operations import ImageOperations
 
 
 class ImageSender(BaseConnection):

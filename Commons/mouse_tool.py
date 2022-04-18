@@ -1,5 +1,5 @@
 from pynput.mouse import Listener, Controller, Button
-from Connections.ImageConnections.image_sender import ImageSender
+
 
 class MouseTool:
     def __init__(self):

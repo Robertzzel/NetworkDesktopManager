@@ -6,6 +6,8 @@ from Commons.ImageOperations import ImageOperations
 
 
 class ImageSender(BaseConnection):
+    CURSOR_POSITIONS = (None, None)
+
     def __init__(self, address):
         self._address = address
         self._socket = socket(AF_INET, SOCK_STREAM)
@@ -21,7 +23,8 @@ class ImageSender(BaseConnection):
 
     def start_sending(self):
         while True:
-            encoded_image = ImageOperations.encode(self._tool.get_screenshot())
+            encoded_image = ImageOperations.encode(self._tool.get_screenshot(self.CURSOR_POSITIONS[0],
+                                                                             self.CURSOR_POSITIONS[1]))
             self.send_message(self._sender_connection, encoded_image, Configurations.LENGTH_MAX_SIZE)
 
     def stop(self):

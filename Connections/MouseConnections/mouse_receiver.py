@@ -2,6 +2,7 @@ from Commons.mouse_tool import MouseTool
 from socket import socket, AF_INET, SOCK_DGRAM
 from Connections.base_connection import BaseConnection
 from configurations import Configurations
+from Connections.ImageConnections.image_sender import ImageSender
 
 
 class MouseReceiver(BaseConnection):
@@ -17,22 +18,23 @@ class MouseReceiver(BaseConnection):
             action, details = data.split(":")
 
             if action == "click":
-                button, pressed = details.split(",")
+                button, pressed, x, y = details.split(",")
                 if button == "Button.left":
                     if pressed == "True":
-                        self._mouse_tool.left_press()
+                        self._mouse_tool.left_press(int(x), int(y))
                     else:
-                        self._mouse_tool.left_release()
+                        self._mouse_tool.left_release(int(x), int(y))
                 elif button == "Button.right":
                     if pressed == "True":
-                        self._mouse_tool.right_press()
+                        self._mouse_tool.right_press(int(x), int(y))
                     else:
-                        self._mouse_tool.right_release()
+                        self._mouse_tool.right_release(int(x), int(y))
                 else:
                     print("click necunoscut")
             elif action == "move":
                 x, y = details.split(",")
-                self._mouse_tool.move_pointer(int(x), int(y))
+                ImageSender.CURSOR_POSITIONS = (int(x), int(y))
+                #self._mouse_tool.move_pointer(int(x), int(y))
             else:
                 print("action 404")
 

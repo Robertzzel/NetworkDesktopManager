@@ -1,11 +1,14 @@
 import pynput
 
 
-def oc(x, y, button, pressed):
-    print(f"clicked: {x}, {y}, {button}, {pressed}")
+class C:
+    A = 2
+
+    def nr(self, nr1, nr2):
+        print(nr1, "%" ,nr2)
 
 
 if __name__ == "__main__":
-    with pynput.mouse.Listener(on_click=oc) as listener:
-        listener.join()
-    print("sal")
+    print(C.A)
+    C.A = 3
+    C.nr(*(C.A,C.A))

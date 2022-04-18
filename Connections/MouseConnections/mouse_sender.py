@@ -18,5 +18,5 @@ class MouseSender(BaseConnection):
         self._socket.sendto(f"move:{x},{y}".encode(), self._address)
 
     def _on_click(self, x, y, button, pressed):
-        self._socket.sendto(f"click:{button},{pressed}".encode(), self._address)
+        self._socket.sendto(f"click:{button},{pressed},{x},{y}".encode(), self._address)
 

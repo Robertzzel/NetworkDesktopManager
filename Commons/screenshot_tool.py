@@ -11,8 +11,11 @@ class ScreenshotTool:
         self._screen_shape = array(grab()).shape
         self.cursor_image = self.get_cursor_image()
 
-    def get_screenshot(self) -> ndarray:
-        cursor_x, cursor_y = self._mouse.position
+    def get_screenshot(self, x_cursor=None, y_cursor=None) -> ndarray:
+        if x_cursor is None or y_cursor is None:
+            cursor_x, cursor_y = self._mouse.position
+        else:
+            cursor_x, cursor_y = x_cursor, y_cursor
         image = self.get_screenshot_image()
 
         try:

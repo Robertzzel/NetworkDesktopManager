@@ -1,5 +1,7 @@
 import base64
 import socket
+import time
+
 import cv2
 import numpy as np
 from Commons.screenshot_tool import ScreenshotTool
@@ -24,10 +26,11 @@ class ImageSender:
         while True:
             ok = 0
             encoded_image = self._encode_image(self._tool.get_screenshot())
-            length_string = str(len(encoded_image)).rjust(8, "0")
+            length_string = str(len(encoded_image)).rjust(Configurations.LENGTH_MAX_SIZE, "0")
 
             self._sender_connection.sendall(length_string.encode())
             self._sender_connection.sendall(encoded_image)
+            time.sleep(1/30)
 
     def _encode_image(self, image: np.ndarray) -> bytes:
         status, encoded = cv2.imencode(Configurations.IMAGES_TYPE, image)

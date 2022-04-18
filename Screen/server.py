@@ -1,5 +1,5 @@
-from Connections.image_sender import ImageSender
-from Connections.mouse_receiver import MouseReceiver
+from Connections.ImageConnections.image_sender import ImageSender
+from Connections.MouseConnections.mouse_receiver import MouseReceiver
 from threading import Thread
 
 

@@ -1,7 +1,7 @@
 import cv2 as cv
 from threading import Thread
-from Connections.image_receiver import ImageReceiver
-from Connections.mouse_sender import MouseSender
+from Connections.ImageConnections.image_receiver import ImageReceiver
+from Connections.MouseConnections.mouse_sender import MouseSender
 
 
 class Client:

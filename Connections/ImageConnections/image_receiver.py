@@ -2,10 +2,11 @@ import socket
 import base64
 import cv2
 import numpy as np
-from select import select
+from configurations import Configurations
+from Connections.base_connection import BaseConnection
 
 
-class ImageReceiver:
+class ImageReceiver(BaseConnection):
     def __init__(self, address):
         self._address = address
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -18,7 +19,7 @@ class ImageReceiver:
 
     def start_receiving(self):
         while not self._stop_sending:
-            length = self._socket.recv(8).decode()
+            length = self._socket.recv(Configurations.LENGTH_MAX_SIZE).decode()
             length = int(length)
 
             encoded_image_string = self.recv_all(self._socket, length)
@@ -32,15 +33,6 @@ class ImageReceiver:
                 yield image
             except:
                 pass
-
-    def recv_all(self, sock: socket.socket, n):
-        final = bytearray()
-        received = 0
-        while received < n:
-            received_data = sock.recv(n - received)
-            final += received_data
-            received += len(received_data)
-        return final
 
     def _decode_image_string(self, image_string: str):
         decoded_image_string = base64.b64decode(image_string)

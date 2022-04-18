@@ -16,11 +16,18 @@ class MouseSender:
                                            on_click=self._on_click)
 
     def _on_move(self, x, y):
-        self._socket.sendall(f"move:{x},{y}".encode())
-        self._socket.recv(1)
-        print(f"Moved {x}, {y}")
+        message = f"move:{x},{y}".encode()
+        length = str(len(message)).rjust(100, "0")
+
+        self._socket.sendall(length.encode())
+        self._socket.sendall(message)
+        print("moved", end=" ")
 
     def _on_click(self, x, y, button, pressed):
-        self._socket.sendall(f"click:{button},{pressed}".encode())
-        self._socket.recv(1)
-        print(f"Clicked {x}, {y}, {button}")
+        message = f"click:{button},{pressed}".encode()
+        length = str(len(message)).rjust(100, "0")
+
+        self._socket.sendall(length.encode())
+        self._socket.sendall(message)
+
+        print(f"click {button}", end=" ")

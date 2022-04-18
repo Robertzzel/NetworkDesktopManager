@@ -1,5 +1,6 @@
 from Commons.mouse_tool import MouseTool
 import socket
+from Connections.base_connection import BaseConnection
 
 
 class MouseReceiver:
@@ -16,8 +17,8 @@ class MouseReceiver:
 
     def start_receiving(self):
         while True:
-            data = self._sender_connection.recv(32).decode()
-            self._sender_connection.sendall(b"X")
+            length = int(self._sender_connection.recv(100).decode())
+            data = self._sender_connection.recv(length).decode()
 
             action, details = data.split(":")
             if action == "click":

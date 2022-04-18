@@ -7,3 +7,4 @@ class Configurations:
     IMAGES_TYPE = ".jpg"
     CURSOR_IMAGE_PATH = f"{Path(__file__).parent}\\Images\\cursor.jpg"
     LENGTH_MAX_SIZE = 8
+    MOUSE_MAX_SIZE = 100

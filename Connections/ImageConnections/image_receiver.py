@@ -19,10 +19,7 @@ class ImageReceiver(BaseConnection):
 
     def start_receiving(self):
         while not self._stop_sending:
-            length = self._socket.recv(Configurations.LENGTH_MAX_SIZE).decode()
-            length = int(length)
-
-            encoded_image_string = self.recv_all(self._socket, length)
+            encoded_image_string = self.receive_message(self._socket, Configurations.LENGTH_MAX_SIZE)
 
             if encoded_image_string == b"exit":
                 self._stop()

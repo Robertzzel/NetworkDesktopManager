@@ -1,8 +1,10 @@
 from Commons.mouse_tool import MouseTool
 import socket
+from Connections.base_connection import BaseConnection
+from configurations import Configurations
 
 
-class MouseSender:
+class MouseSender(BaseConnection):
     def __init__(self, address):
         self._mouse_tool = MouseTool()
         self._address = address
@@ -16,18 +18,9 @@ class MouseSender:
                                            on_click=self._on_click)
 
     def _on_move(self, x, y):
-        message = f"move:{x},{y}".encode()
-        length = str(len(message)).rjust(100, "0")
-
-        self._socket.sendall(length.encode())
-        self._socket.sendall(message)
+        self.send_message(self._socket, f"move:{x},{y}".encode(), Configurations.MOUSE_MAX_SIZE)
         print("moved", end=" ")
 
     def _on_click(self, x, y, button, pressed):
-        message = f"click:{button},{pressed}".encode()
-        length = str(len(message)).rjust(100, "0")
-
-        self._socket.sendall(length.encode())
-        self._socket.sendall(message)
-
+        self.send_message(self._socket, f"click:{button},{pressed}".encode(), Configurations.MOUSE_MAX_SIZE)
         print(f"click {button}", end=" ")

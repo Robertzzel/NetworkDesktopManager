@@ -6,9 +6,10 @@ import cv2
 import numpy as np
 from Commons.screenshot_tool import ScreenshotTool
 from configurations import Configurations
+from Connections.base_connection import BaseConnection
 
 
-class ImageSender:
+class ImageSender(BaseConnection):
     def __init__(self, address):
         self._address = address
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -24,12 +25,8 @@ class ImageSender:
 
     def start_sending(self):
         while True:
-            ok = 0
             encoded_image = self._encode_image(self._tool.get_screenshot())
-            length_string = str(len(encoded_image)).rjust(Configurations.LENGTH_MAX_SIZE, "0")
-
-            self._sender_connection.sendall(length_string.encode())
-            self._sender_connection.sendall(encoded_image)
+            self.send_message(self._sender_connection, encoded_image, Configurations.LENGTH_MAX_SIZE)
             time.sleep(1/30)
 
     def _encode_image(self, image: np.ndarray) -> bytes:

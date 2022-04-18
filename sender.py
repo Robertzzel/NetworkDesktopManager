@@ -4,8 +4,7 @@ from Screen.server import Server
 from configurations import Configurations
 
 ADDRESS = (Configurations.SERVER_IP, 5001)
-ADDRESS_MOUSE = (Configurations.SERVER_IP, 5002)
-ADDRESS_KEYBOARD = (Configurations.SERVER_IP, 5003)
+ADDRESS_INPUT = (Configurations.SERVER_IP, 5002)
 
 
 def stop(sr):
@@ -16,7 +15,7 @@ def stop(sr):
 
 
 if __name__ == "__main__":
-    sr = Server(ADDRESS, ADDRESS_MOUSE, ADDRESS_KEYBOARD)
+    sr = Server(ADDRESS, ADDRESS_INPUT)
     threading.Thread(target=sr.start).start()
     #stop(sr)
 

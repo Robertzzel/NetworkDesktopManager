@@ -10,7 +10,7 @@ class Server:
 
     def start(self):
         self._images_sender.connect()
-        self._mouse_receiver.connect()
+        #self._mouse_receiver.connect()
         Thread(target=self._begin_receiving_mouse_events).start()
         self._images_sender.start_sending()
 

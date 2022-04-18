@@ -15,7 +15,7 @@ class Client:
 
     def start(self):
         self._images_receiver.connect()
-        self._mouse_sender.connect()
+        #self._mouse_sender.connect()
         Thread(target=self._begin_sending_mouse_events).start()
         self._begin_receiving_images()
 

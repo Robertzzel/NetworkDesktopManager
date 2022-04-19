@@ -46,10 +46,8 @@ class InputReceiver(BaseConnection):
                 x, y = details.split(",")
                 self._mouse.move_pointer(x,y)
             elif action == InputActions.PRESS:
-                print("press" + details)
                 self._keyboard.press_letter(details)
             elif action == InputActions.RELEASE:
-                print("release" + details)
                 self._keyboard.release_letter(details)
             elif action == InputActions.CLICK:
                 button, pressed = details.split(",")

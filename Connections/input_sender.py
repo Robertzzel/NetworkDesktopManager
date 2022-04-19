@@ -1,5 +1,5 @@
 from socket import socket, AF_INET, SOCK_STREAM
-from Commons.keyboard_tool import KeyboardTool
+from Commons.keyboard_tool import KeyboardTool, Key
 from Commons.mouse_tool import MouseTool
 from configurations import Configurations
 from Connections.base_connection import BaseConnection
@@ -24,16 +24,16 @@ class InputSender(BaseConnection):
         Thread(target=self._mouse.listen_for_clicks, args=(self._on_move, self._on_click)).start()
 
     def on_press(self, key):
-        try:
+        if type(key) != Key:
             self.send_message(self._socket, f"{InputActions.PRESS.value}:{key.char}".encode(), Configurations.INPUT_MAX_SIZE)
-        except AttributeError:
-            self.send_message(self._socket, f"{InputActions.PRESS.value}:{str(key)}".encode(), Configurations.INPUT_MAX_SIZE)
+        else:
+            self.send_message(self._socket, f"{InputActions.PRESS.value}:{key.name}".encode(), Configurations.INPUT_MAX_SIZE)
 
     def on_release(self, key):
-        try:
+        if type(key) != Key:
             self.send_message(self._socket, f"{InputActions.RELEASE.value}:{key.char}".encode(), Configurations.INPUT_MAX_SIZE)
-        except AttributeError:
-            self.send_message(self._socket, f"{InputActions.RELEASE.value}:{str(key)}".encode(), Configurations.INPUT_MAX_SIZE)
+        else:
+            self.send_message(self._socket, f"{InputActions.RELEASE.value}:{key.name}".encode(), Configurations.INPUT_MAX_SIZE)
 
     def _on_move(self, x, y):
         self.send_message(self._socket, f"{InputActions.MOVE.value}:{x},{y}".encode(), Configurations.INPUT_MAX_SIZE)

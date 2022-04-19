@@ -11,13 +11,13 @@ class KeyboardTool:
             listener.join()
 
     def press_letter(self, letter: str):
-        try:
+        if len(letter) == 1:
             self._controller.press(letter)
-        except ValueError:
-            self._controller.press(getattr(Key, letter.split(".")[1]))
+        else:
+            self._controller.press(Key[letter])
 
     def release_letter(self, letter: str):
-        try:
+        if len(letter) == 1:
             self._controller.release(letter)
-        except ValueError:
-            self._controller.press(getattr(Key, letter.split(".")[1]))
+        else:
+            self._controller.release(Key[letter])

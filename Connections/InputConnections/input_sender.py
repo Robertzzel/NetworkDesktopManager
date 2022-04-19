@@ -8,16 +8,10 @@ from threading import Thread
 
 
 class InputSender(BaseConnection):
-    def __init__(self, address):
-        self._address = address
-        self._socket = socket(AF_INET, SOCK_STREAM)
+    def __init__(self, server_socket: socket):
+        self._socket = server_socket
         self._keyboard = KeyboardTool()
         self._mouse = MouseTool()
-
-    def connect(self):
-        print(f"KEyboard: trying to connect to {self._address}")
-        self._socket.connect(self._address)
-        print("Connected")
 
     def start(self):
         Thread(target=self._keyboard.listen_keyboard, args=(self.on_press, self.on_release,)).start()

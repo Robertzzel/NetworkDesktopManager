@@ -6,16 +6,13 @@ from socket import socket, AF_INET, SOCK_STREAM
 from Commons.input_actions import InputActions
 from threading import Thread
 
-# cursorul nu e la pozitia sageata buna si backspaceul mere de 2 or
+# cursorul nu e la pozitia sageata buna
 
 class InputReceiver(BaseConnection):
-    def __init__(self, address):
+    def __init__(self, client_socket: socket):
         self._mouse = MouseTool()
         self._keyboard = KeyboardTool()
-        self._address = address
-        self._socket = socket(AF_INET, SOCK_STREAM)
-        self._socket.bind(address)
-        self._sender_connection = None
+        self._client_socket = client_socket
 
         self.click_mapper = {
             "Button.leftTrue": self._mouse.left_press,
@@ -24,18 +21,12 @@ class InputReceiver(BaseConnection):
             "Button.rightFalse": self._mouse.right_release
         }
 
-    def connect(self):
-        print(f"Keyboard:Listening at {self._address}")
-        self._socket.listen()
-        self._sender_connection, _ = self._socket.accept()
-        print(f"Connected to {self._sender_connection}")
-
     def start(self):
         Thread(target=self._start_receiving).start()
 
     def _start_receiving(self):
         while True:
-            data = self.receive_message(self._sender_connection, Configurations.INPUT_MAX_SIZE).decode()
+            data = self.receive_message(self._client_socket, Configurations.INPUT_MAX_SIZE).decode()
             try:
                 action, details = data.split(":")
             except:

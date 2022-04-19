@@ -1,8 +1,13 @@
+from . import secure_sending, secure_receiving
+
+
 class BaseConnection:
+    @secure_receiving
     def receive_message(self, sock, length_max_size: int) -> bytes:
         length = int(sock.recv(length_max_size).decode())
         return self.recv_all(sock, length)
 
+    @secure_sending
     def send_message(self, sock, message: bytes, length_max_size: int):
         length_string = str(len(message)).rjust(length_max_size, "0")
         sock.sendall(length_string.encode())

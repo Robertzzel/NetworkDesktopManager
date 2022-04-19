@@ -1,5 +1,4 @@
-from Commons.screenshot_tool import ScreenshotTool
-from configurations import Configurations
+from Tools.screenshot_tool import ScreenshotTool
 from Connections.base_connection import BaseConnection
 from Commons.image_operations import ImageOperations
 from queue import Queue

@@ -8,3 +8,4 @@ class Configurations:
     CURSOR_IMAGE_PATH = f"{Path(__file__).parent}\\Images\\cursor.jpg"
     LENGTH_MAX_SIZE = 8
     INPUT_MAX_SIZE = 3
+    WINDOW_NAME = "LIVE"

@@ -1,15 +1,14 @@
-from socket import socket, AF_INET, SOCK_STREAM
-from Commons.keyboard_tool import KeyboardTool, Key
-from Commons.mouse_tool import MouseTool
-from configurations import Configurations
+from Tools.keyboard_tool import KeyboardTool, Key
+from Tools.mouse_tool import MouseTool
 from Connections.base_connection import BaseConnection
 from Commons.input_actions import InputActions
 from threading import Thread
+from queue import Queue
 
 
 class InputSender(BaseConnection):
-    def __init__(self, server_socket: socket):
-        self._socket = server_socket
+    def __init__(self, queue: Queue):
+        self._queue = queue
         self._keyboard = KeyboardTool()
         self._mouse = MouseTool()
 
@@ -19,18 +18,24 @@ class InputSender(BaseConnection):
 
     def on_press(self, key):
         if type(key) != Key:
-            self.send_message(self._socket, f"{InputActions.PRESS.value}:{key.char}".encode(), Configurations.INPUT_MAX_SIZE)
+            self._queue.put(f"{InputActions.PRESS.value}:{key.char}".encode())
+            #self.send_message(self._socket, f"{InputActions.PRESS.value}:{key.char}".encode(), Configurations.INPUT_MAX_SIZE)
         else:
-            self.send_message(self._socket, f"{InputActions.PRESS.value}:{key.name}".encode(), Configurations.INPUT_MAX_SIZE)
+            self._queue.put(f"{InputActions.PRESS.value}:{key.name}".encode())
+            #self.send_message(self._socket, f"{InputActions.PRESS.value}:{key.name}".encode(), Configurations.INPUT_MAX_SIZE)
 
     def on_release(self, key):
         if type(key) != Key:
-            self.send_message(self._socket, f"{InputActions.RELEASE.value}:{key.char}".encode(), Configurations.INPUT_MAX_SIZE)
+            self._queue.put(f"{InputActions.RELEASE.value}:{key.char}".encode())
+            #self.send_message(self._socket, f"{InputActions.RELEASE.value}:{key.char}".encode(), Configurations.INPUT_MAX_SIZE)
         else:
-            self.send_message(self._socket, f"{InputActions.RELEASE.value}:{key.name}".encode(), Configurations.INPUT_MAX_SIZE)
+            self._queue.put(f"{InputActions.RELEASE.value}:{key.name}".encode())
+            #self.send_message(self._socket, f"{InputActions.RELEASE.value}:{key.name}".encode(), Configurations.INPUT_MAX_SIZE)
 
     def _on_move(self, x, y):
-        self.send_message(self._socket, f"{InputActions.MOVE.value}:{x},{y}".encode(), Configurations.INPUT_MAX_SIZE)
+        self._queue.put(f"{InputActions.MOVE.value}:{x},{y}".encode())
+        #self.send_message(self._socket, f"{InputActions.MOVE.value}:{x},{y}".encode(), Configurations.INPUT_MAX_SIZE)
 
     def _on_click(self,x, y, button, pressed):
-        self.send_message(self._socket, f"{InputActions.CLICK.value}:{button},{pressed}".encode(), Configurations.INPUT_MAX_SIZE)
+        self._queue.put(f"{InputActions.CLICK.value}:{button},{pressed}".encode())
+        #self.send_message(self._socket, f"{InputActions.CLICK.value}:{button},{pressed}".encode(), Configurations.INPUT_MAX_SIZE)

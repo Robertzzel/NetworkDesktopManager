@@ -2,32 +2,44 @@ from cv2 import namedWindow, WINDOW_NORMAL, imshow, waitKey
 from Connections.ImageConnections.image_receiver import ImageReceiver
 from Connections.InputConnections.input_sender import InputSender
 from socket import socket, AF_INET, SOCK_STREAM
+from queue import Queue
+from threading import Thread
+from Connections.base_connection import BaseConnection
+from configurations import Configurations
 
 
-class Client:
+class Client(BaseConnection):
     def __init__(self, address, window_name: str):
         self._address = address
         self._socket = socket(AF_INET, SOCK_STREAM)
         self._connect_to_server()
 
-        self._input_sender = InputSender(self._socket)
-        self._images_receiver = ImageReceiver(self._socket)
+        self._image_queue = Queue()
+        self._input_queue = Queue()
 
-        self._window_name = window_name
-        namedWindow(self._window_name, WINDOW_NORMAL)
+        self._input_sender = InputSender(self._input_queue)
+        self._images_receiver = ImageReceiver(self._image_queue)
+
+        self._running = True
 
     def start(self):
-        self._input_sender.start()
-        self._begin_receiving_images()
+        Thread(target=self._send_inputs).start()
+        Thread(target=self._get_images).start()
+        Thread(target=self._images_receiver.start_receiving).start()
 
-    def _begin_receiving_images(self):
-        for image in self._images_receiver.start_receiving():
-            self.show_image(image)
+    def _send_inputs(self):
+        while self._running:
+            msg: bytes = self._input_queue.get()
+            self.send_message(self._socket, msg, Configurations.INPUT_MAX_SIZE)
 
-    def show_image(self, image):
-        imshow(self._window_name, image)
-        waitKey(1)
+    def _get_images(self):
+        while self._running:
+            img = self.receive_message(self._socket, Configurations.LENGTH_MAX_SIZE)
+            self._image_queue.put(img)
 
     def _connect_to_server(self):
         self._socket.connect(self._address)
         print(f"Connected to {self._address}")
+
+    def _stop(self):
+        self._running = False

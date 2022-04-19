@@ -5,6 +5,7 @@ from configurations import Configurations
 
 ADDRESS = (Configurations.SERVER_IP, 5001)
 ADDRESS_INPUT = (Configurations.SERVER_IP, 5002)
+ADDRESS_SOUND = (Configurations.SERVER_IP, 5003)
 
 
 def stop(sr):
@@ -15,7 +16,7 @@ def stop(sr):
 
 
 if __name__ == "__main__":
-    sr = Server(ADDRESS, ADDRESS_INPUT)
+    sr = Server(ADDRESS, ADDRESS_INPUT, ADDRESS_SOUND)
     threading.Thread(target=sr.start).start()
     #stop(sr)
 

@@ -26,6 +26,7 @@ class Client(BaseConnection):
     def start(self):
         Thread(target=self._send_inputs).start()
         Thread(target=self._get_images).start()
+        Thread(target=self._input_sender.start).start()
         self._print_received_images()
 
     def _send_inputs(self):

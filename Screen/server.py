@@ -1,11 +1,11 @@
 from Connections.ImageConnections.image_sender import ImageSender
-from Connections.input_receiver import InputReceiver
+from Connections.InputConnections.input_receiver import InputReceiver
 
 
 class Server:
-    def __init__(self, images_address, input_address):
-        self._input_receiver = InputReceiver(input_address)
-        self._images_sender = ImageSender(images_address)
+    def __init__(self, address):
+        self._input_receiver = InputReceiver(address)
+        self._images_sender = ImageSender(address)
 
     def start(self):
         self._images_sender.connect()

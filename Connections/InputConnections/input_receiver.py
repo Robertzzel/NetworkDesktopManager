@@ -9,7 +9,6 @@ from threading import Thread
 # cursorul nu e la pozitia sageata buna si backspaceul mere de 2 or
 
 class InputReceiver(BaseConnection):
-
     def __init__(self, address):
         self._mouse = MouseTool()
         self._keyboard = KeyboardTool()

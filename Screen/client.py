@@ -1,6 +1,6 @@
 from cv2 import namedWindow, WINDOW_NORMAL, imshow, waitKey
 from Connections.ImageConnections.image_receiver import ImageReceiver
-from Connections.input_sender import InputSender
+from Connections.InputConnections.input_sender import InputSender
 
 
 class Client:
@@ -14,6 +14,7 @@ class Client:
     def start(self):
         self._images_receiver.connect()
         self._input_sender.connect()
+
         self._input_sender.start()
         self._begin_receiving_images()
 

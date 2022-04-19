@@ -15,7 +15,7 @@ def stop(sr):
 
 
 if __name__ == "__main__":
-    sr = Server(ADDRESS, ADDRESS_INPUT)
+    sr = Server(ADDRESS)
     threading.Thread(target=sr.start).start()
     #stop(sr)
 

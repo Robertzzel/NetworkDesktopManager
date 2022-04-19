@@ -30,3 +30,4 @@ class Client:
 
     def _connect_to_server(self):
         self._socket.connect(self._address)
+        print(f"Connected to {self._address}")

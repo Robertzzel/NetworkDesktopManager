@@ -2,17 +2,17 @@ from Commons.mouse_tool import MouseTool
 from Connections.base_connection import BaseConnection
 from configurations import Configurations
 from Commons.keyboard_tool import KeyboardTool
-from socket import socket, AF_INET, SOCK_STREAM
 from Commons.input_actions import InputActions
 from threading import Thread
+from queue import Queue
 
 # cursorul nu e la pozitia sageata buna
 
 class InputReceiver(BaseConnection):
-    def __init__(self, client_socket: socket):
+    def __init__(self, queue: Queue):
         self._mouse = MouseTool()
         self._keyboard = KeyboardTool()
-        self._client_socket = client_socket
+        self._queue = queue
 
         self.click_mapper = {
             "Button.leftTrue": self._mouse.left_press,
@@ -26,7 +26,7 @@ class InputReceiver(BaseConnection):
 
     def _start_receiving(self):
         while True:
-            data = self.receive_message(self._client_socket, Configurations.INPUT_MAX_SIZE).decode()
+            data = self._queue.get()
             try:
                 action, details = data.split(":")
             except:

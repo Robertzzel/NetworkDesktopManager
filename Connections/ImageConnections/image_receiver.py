@@ -11,7 +11,9 @@ class ImageReceiver(BaseConnection):
 
     def start_receiving(self):
         while self._running:
+            print("Receiving Image")
             encoded_image_string = self.receive_message(self._socket, Configurations.LENGTH_MAX_SIZE)
+            print(f"Received {len(encoded_image_string)}")
 
             if encoded_image_string == b"exit":
                 self._stop()

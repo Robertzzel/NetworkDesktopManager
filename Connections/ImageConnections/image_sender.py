@@ -6,7 +6,6 @@ from Commons.image_operations import ImageOperations
 
 
 class ImageSender(BaseConnection):
-
     def __init__(self, address):
         self._address = address
         self._socket = socket(AF_INET, SOCK_STREAM)

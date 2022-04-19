@@ -3,9 +3,9 @@ from Connections.InputConnections.input_receiver import InputReceiver
 
 
 class Server:
-    def __init__(self, address):
-        self._input_receiver = InputReceiver(address)
-        self._images_sender = ImageSender(address)
+    def __init__(self, image_address, input_address):
+        self._input_receiver = InputReceiver(input_address)
+        self._images_sender = ImageSender(image_address)
 
     def start(self):
         self._images_sender.connect()

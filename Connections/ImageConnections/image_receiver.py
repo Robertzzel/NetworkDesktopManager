@@ -1,10 +1,6 @@
 from Connections.base_connection import BaseConnection
 from Commons.image_operations import ImageOperations
 from queue import Queue
-from configurations import Configurations
-import cv2
-
-cv2.namedWindow(Configurations.WINDOW_NAME, cv2.WINDOW_AUTOSIZE)
 
 class ImageReceiver(BaseConnection):
     def __init__(self, queue: Queue):
@@ -23,13 +19,9 @@ class ImageReceiver(BaseConnection):
 
             try:
                 image = ImageOperations.decode(encoded_image_string)
-                self.show_image(image)
+                yield image
             except:
                 pass
-
-    def show_image(self, image):
-        cv2.imshow(Configurations.WINDOW_NAME, image)
-        cv2.waitKey(1)
 
     def _stop(self):
         self._running = False

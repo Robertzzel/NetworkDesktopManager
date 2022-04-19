@@ -40,9 +40,6 @@ class Server(BaseConnection):
             self.send_message(self._client_connection, image,
                               Configurations.LENGTH_MAX_SIZE)
 
-    # def stop(self):
-    #     self._images_sender.stop()
-
     def _connect(self):
         self._socket.bind(self._address)
         print(f"Listenigng to {self._address}")

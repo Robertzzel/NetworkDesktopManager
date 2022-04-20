@@ -1,28 +1,22 @@
-from socket import socket, AF_INET, SOCK_STREAM
-from Commons.screenshot_tool import ScreenshotTool
-from configurations import Configurations
-from Connections.base_connection import BaseConnection
+from Tools.screenshot_tool import ScreenshotTool
 from Commons.image_operations import ImageOperations
+from multiprocessing import Queue, Process
 
 
-class ImageSender(BaseConnection):
-    def __init__(self, address):
-        self._address = address
-        self._socket = socket(AF_INET, SOCK_STREAM)
-        self._socket.bind(address)
-        self._sender_connection = None
+class ImageSender:
+    def __init__(self, queue):
+        self._queue: Queue = queue
         self._tool = ScreenshotTool()
+        self._process: Process = None
 
-    def connect(self):
-        print(f"Listening at {self._address}")
-        self._socket.listen()
-        self._sender_connection, _ = self._socket.accept()
-        print(f"Connected to {_}")
+    def start(self):
+        self._process = Process(target=self._start_sending)
+        self._process.start()
 
-    def start_sending(self):
+    def _start_sending(self):
         while True:
             encoded_image = ImageOperations.encode(self._tool.get_screenshot())
-            self.send_message(self._sender_connection, encoded_image, Configurations.LENGTH_MAX_SIZE)
+            self._queue.put(encoded_image)
 
     def stop(self):
-        self._sender_connection.close()
+        self._process.kill()

@@ -17,6 +17,9 @@ def stop(sr):
 
 if __name__ == "__main__":
     sr = Server(ADDRESS, ADDRESS_INPUT, ADDRESS_SOUND)
-    threading.Thread(target=sr.start).start()
-    #stop(sr)
+    try:
+        sr.start()
+    except:
+        print("stop apelat server")
+        sr.stop()
 

@@ -1,5 +1,5 @@
 from cv2 import namedWindow, WINDOW_NORMAL, imshow, waitKey
-from Connections.ImageConnections.image_receiver import ImageReceiver
+from Connections.ImageConnections.image_displayer import ImageDisplayer
 from Connections.InputConnections.input_generator import InputGenerator
 from Connections.SoundConnections.sound_player import SoundPlayer
 from Connections.base_connection import BaseConnection
@@ -24,23 +24,21 @@ class Client(BaseConnection):
 
         self._input_sender = InputGenerator(self._input_queue)
         self._sound_sender = SoundPlayer(self._sound_queue)
-        self._images_receiver = ImageReceiver(self._image_queue)
+        self._images_receiver = ImageDisplayer(self._image_queue)
 
         self._running = True
-        self._connections = [self._image_socket, self._input_socket, self._sound_socket]
-        self._window_name = window_name
-        namedWindow(self._window_name, WINDOW_NORMAL)
+
 
     def start(self):
         self._connect()
 
-        self._input_sender.start()
+        #self._input_sender.start()
         #self._sound_sender.start()
-        self._begin_receiving_images()
+        self._images_receiver.start()
 
     def _connect(self):
         Thread(target=self._connect_to_image_server).start()
-        Thread(target=self._connect_to_input_server).start()
+        #Thread(target=self._connect_to_input_server).start()
         #Thread(target=self._connect_to_sound_server).start()
 
     def _connect_to_image_server(self):
@@ -61,10 +59,11 @@ class Client(BaseConnection):
             sound = self.receive_message(self._sound_socket, Configurations.INPUT_MAX_SIZE)
             self._sound_queue.put(sound)
 
-    def _begin_receiving_images(self):
-        for image in self._images_receiver.start_receiving():
-            self.show_image(image)
+    def stop(self):
+        self._running = False
+        self._sound_socket.close()
+        self._input_socket.close()
+        self._image_socket.close()
 
-    def show_image(self, image):
-        imshow(self._window_name, image)
-        waitKey(1)
+        self._sound_sender.stop()
+        self._images_receiver.stop()

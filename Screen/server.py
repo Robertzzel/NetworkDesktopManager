@@ -31,13 +31,13 @@ class Server(BaseConnection):
     def start(self):
         self._connect()
 
-        self._input_receiver.start()
+        #self._input_receiver.start()
         #self._sound_receiver.start()
         self._images_sender.start()
 
     def _connect(self):
         Thread(target=self._listen_for_image_connections).start()
-        Thread(target=self._listen_for_input_connection).start()
+        #Thread(target=self._listen_for_input_connection).start()
         #Thread(target=self._listen_for_sound_connection).start()
 
     def _listen_for_image_connections(self):
@@ -81,4 +81,7 @@ class Server(BaseConnection):
         map(lambda conn: conn.close(), self._connections)
         self._images_sender.stop()
         self._input_receiver.stop()
+        self._sound_receiver.stop()
+        self._input_receiver.stop()
+        self._images_sender.stop()
         self._sound_receiver.stop()

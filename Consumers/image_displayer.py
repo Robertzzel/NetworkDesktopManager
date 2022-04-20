@@ -1,4 +1,3 @@
-from threading import Thread
 from multiprocessing import Process
 from queue import Queue
 from Commons.image_operations import ImageOperations
@@ -12,6 +11,7 @@ class ImageDisplayer:
         self._process: Process = None
 
     def start(self):
+        Configurations.LOGGER.warning("CLIENT: Starting Image Displayer...")
         self._process = Process(target=self._start_receiving)
         self._process.start()
 
@@ -27,6 +27,7 @@ class ImageDisplayer:
                 pass
 
     def stop(self):
+        Configurations.LOGGER.warning("CLIENT: Stopping Image Displayer...")
         self._process.kill()
         destroyAllWindows()
 

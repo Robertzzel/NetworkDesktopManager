@@ -3,10 +3,13 @@ from Tools.keyboard_tool import KeyboardTool
 from Commons.input_actions import InputActions
 from threading import Thread
 from queue import Queue
+from configurations import Configurations
 
 
 class InputExecutor:
     def __init__(self, queue):
+        Configurations.LOGGER.warning("SERVER: Initialising Input Executor...")
+
         self._mouse = MouseTool()
         self._keyboard = KeyboardTool()
         self._queue: Queue = queue
@@ -19,6 +22,7 @@ class InputExecutor:
         self._running = True
 
     def start(self):
+        Configurations.LOGGER.warning("SERVER: Starting Input Executor...")
         Thread(target=self._start_receiving).start()
 
     def _start_receiving(self):
@@ -43,4 +47,5 @@ class InputExecutor:
                 print("action 404")
 
     def stop(self):
+        Configurations.LOGGER.warning("SERVER: Stopping Input Executor")
         self._running = False

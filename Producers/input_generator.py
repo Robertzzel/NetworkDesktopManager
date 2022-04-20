@@ -3,15 +3,18 @@ from Tools.keyboard_tool import KeyboardTool, Key
 from Tools.mouse_tool import MouseTool
 from Commons.input_actions import InputActions
 from threading import Thread
+from configurations import Configurations
 
 
 class InputGenerator:
     def __init__(self, queue):
+        Configurations.LOGGER.warning("SERVER: Initialising Input Generator...")
         self._queue: Queue = queue
         self._keyboard = KeyboardTool()
         self._mouse = MouseTool()
 
     def start(self):
+        Configurations.LOGGER.warning("SERVER: Starting Input Generator...")
         Thread(target=self._keyboard.listen_keyboard, args=(self.on_press, self.on_release,)).start()
         Thread(target=self._mouse.listen_for_clicks, args=(self._on_move, self._on_click)).start()
 

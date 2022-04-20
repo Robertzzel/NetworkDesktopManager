@@ -1,5 +1,6 @@
 from pathlib import Path
 from Commons.computer import Computer
+import logging
 
 
 class Configurations:
@@ -9,3 +10,5 @@ class Configurations:
     LENGTH_MAX_SIZE = 8
     INPUT_MAX_SIZE = 3
     WINDOW_NAME = "LIVE"
+    LOGGER_NAME = "BEST_NAME"
+    LOGGER = logging.getLogger(LOGGER_NAME)

@@ -1,9 +1,10 @@
 from Tools.screenshot_tool import ScreenshotTool
 from Commons.image_operations import ImageOperations
 from multiprocessing import Queue, Process
+from queue import Full
 
 
-class ImageSender:
+class ImageGenerator:
     def __init__(self, queue):
         self._queue: Queue = queue
         self._tool = ScreenshotTool()
@@ -16,7 +17,10 @@ class ImageSender:
     def _start_sending(self):
         while True:
             encoded_image = ImageOperations.encode(self._tool.get_screenshot())
-            self._queue.put(encoded_image)
+            try:
+                self._queue.put_nowait(encoded_image)
+            except Full:
+                pass
 
     def stop(self):
         self._process.kill()

@@ -3,7 +3,7 @@ from threading import Thread
 from queue import Queue
 
 
-class SoundReceiver:
+class SoundPlayer:
     def __init__(self, queue):
         self._recording = None
         self._running = True

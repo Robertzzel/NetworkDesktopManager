@@ -5,7 +5,7 @@ from Commons.input_actions import InputActions
 from threading import Thread
 
 
-class InputSender:
+class InputGenerator:
     def __init__(self, queue):
         self._queue: Queue = queue
         self._keyboard = KeyboardTool()

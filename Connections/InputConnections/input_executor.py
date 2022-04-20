@@ -5,7 +5,7 @@ from threading import Thread
 from queue import Queue
 
 
-class InputReceiver:
+class InputExecutor:
     def __init__(self, queue):
         self._mouse = MouseTool()
         self._keyboard = KeyboardTool()

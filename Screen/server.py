@@ -1,6 +1,6 @@
-from Connections.ImageConnections.image_sender import ImageSender
-from Connections.InputConnections.input_receiver import InputReceiver
-from Connections.SoundConnections.sound_sender import SoundSender
+from Connections.ImageConnections.image_generator import ImageGenerator
+from Connections.InputConnections.input_executor import InputExecutor
+from Connections.SoundConnections.sound_generator import SoundGenerator
 from Connections.base_connection import BaseConnection
 from multiprocessing import Queue
 from socket import socket, AF_INET, SOCK_STREAM
@@ -17,13 +17,13 @@ class Server(BaseConnection):
         self._sound_socket = socket(AF_INET, SOCK_STREAM)
         self._sound_socket.bind(sound_address)
 
-        self._image_queue = Queue()
+        self._image_queue = Queue(4)
         self._input_queue = Queue()
         self._sound_queue = Queue()
 
-        self._input_receiver = InputReceiver(self._input_queue)
-        self._images_sender = ImageSender(self._image_queue)
-        self._sound_receiver = SoundSender(self._sound_queue)
+        self._input_receiver = InputExecutor(self._input_queue)
+        self._images_sender = ImageGenerator(self._image_queue)
+        self._sound_receiver = SoundGenerator(self._sound_queue)
 
         self._running = True
         self._connections = [self._sound_socket, self._image_socket, self._input_socket]

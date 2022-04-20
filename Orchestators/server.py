@@ -1,14 +1,14 @@
-from Connections.ImageConnections.image_generator import ImageGenerator
-from Connections.InputConnections.input_executor import InputExecutor
-from Connections.SoundConnections.sound_generator import SoundGenerator
-from Connections.base_connection import BaseConnection
+from Producers.image_generator import ImageGenerator
+from Consumers.input_executor import InputExecutor
+from Producers.sound_generator import SoundGenerator
+from Orchestators.orchestrator import Orchestrator
 from multiprocessing import Queue
 from socket import socket, AF_INET, SOCK_STREAM
 from configurations import Configurations
 from threading import Thread
 
 
-class Server(BaseConnection):
+class Server(Orchestrator):
     def __init__(self, image_address, input_address, sound_address):
         self._image_socket = socket(AF_INET, SOCK_STREAM)
         self._image_socket.bind(image_address)

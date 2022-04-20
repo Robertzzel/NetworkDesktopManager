@@ -1,15 +1,14 @@
-from cv2 import namedWindow, WINDOW_NORMAL, imshow, waitKey
-from Connections.ImageConnections.image_displayer import ImageDisplayer
-from Connections.InputConnections.input_generator import InputGenerator
-from Connections.SoundConnections.sound_player import SoundPlayer
-from Connections.base_connection import BaseConnection
+from Consumers.image_displayer import ImageDisplayer
+from Producers.input_generator import InputGenerator
+from Consumers.sound_player import SoundPlayer
+from Orchestators.orchestrator import Orchestrator
 from multiprocessing import Queue
 from threading import Thread
 from socket import socket, AF_INET, SOCK_STREAM
 from configurations import Configurations
 
 
-class Client(BaseConnection):
+class Client(Orchestrator):
     def __init__(self, image_address, input_address, sound_address, window_name: str):
         self._image_socket = socket(AF_INET, SOCK_STREAM)
         self._input_socket = socket(AF_INET, SOCK_STREAM)

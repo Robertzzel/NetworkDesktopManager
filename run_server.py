@@ -1,6 +1,6 @@
 import time
 import threading
-from Screen.server import Server
+from Orchestators.server import Server
 from configurations import Configurations
 
 ADDRESS = (Configurations.SERVER_IP, 5001)

@@ -1,41 +1,34 @@
-from cv2 import imread, cvtColor, COLOR_RGB2BGR, imshow, waitKey
-from PIL.ImageGrab import grab
-from pynput.mouse import Controller
+from cv2 import imread, cvtColor, COLOR_RGB2BGR, imshow, waitKey, IMREAD_COLOR, IMREAD_UNCHANGED, COLOR_RGB2BGRA
+from pyautogui import screenshot
+from pyautogui import position
 from numpy import array, ndarray
 from configurations import Configurations
 
 
 class ScreenshotTool:
     def __init__(self):
-        self._mouse = Controller()
-        self._screen_shape = array(grab()).shape
-        self.cursor_image = self.get_cursor_image()
+        self._screen_shape = array(screenshot()).shape
+        self.cursor_image: ndarray = imread(Configurations.CURSOR_IMAGE_PATH)
 
-    def get_screenshot(self, x_cursor=None, y_cursor=None) -> ndarray:
-        if x_cursor is None or y_cursor is None:
-            cursor_x, cursor_y = self._mouse.position
-        else:
-            cursor_x, cursor_y = x_cursor, y_cursor
+    def get_screenshot(self) -> ndarray:
+        cursor_x, cursor_y = position()
         image = self.get_screenshot_image()
 
-        try:
-            image[cursor_y: cursor_y + self.cursor_image.shape[0],
-                  cursor_x: cursor_x + self.cursor_image.shape[1]] = self.cursor_image
-        except:
-            pass
+        if cursor_x > 0 and cursor_x + self.cursor_image.shape[1] < image.shape[1] \
+                and cursor_y > 0 and cursor_y + self.cursor_image.shape[0] < image.shape[0]:
+
+            for i in range(cursor_y, cursor_y + self.cursor_image.shape[0]):
+                for j in range(cursor_x, cursor_x + self.cursor_image.shape[1]):
+                    x = self.cursor_image[i - cursor_y, j - cursor_x, :]
+                    if not(x[0] < 150 and x[1] < 100 and x[2] < 100):
+                        image[i, j, :] = x
 
         return image
 
     def get_screenshot_image(self):
-        rgb_image = grab()
-        bgr_image = cvtColor(array(rgb_image), COLOR_RGB2BGR)
-        #cv2.cvtColor(bgr_image, cv2.COLOR_BGR2BGRA)
+        rgb_image = screenshot()
+        bgr_image: ndarray = cvtColor(array(rgb_image), COLOR_RGB2BGR)
         return bgr_image
-
-    def get_cursor_image(self):
-        cursor_image = imread(Configurations.CURSOR_IMAGE_PATH)
-        #cv2.cvtColor(cursor_image, cv2.COLOR_BGR2BGRA)
-        return cursor_image
 
     def get_screen_shape(self):
         return self._screen_shape

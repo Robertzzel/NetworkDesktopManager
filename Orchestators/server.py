@@ -1,5 +1,5 @@
 from Producers.image_generator import ImageGenerator
-from Consumers.input_executor import InputExecutor
+from Consumers.mouse_executor import MouseExecutor
 from Producers.sound_generator import SoundGenerator
 from Orchestators.orchestrator import Orchestrator
 from multiprocessing import Queue
@@ -23,7 +23,7 @@ class Server(Orchestrator):
         self._input_queue = Queue()
         self._sound_queue = Queue()
 
-        self._input_receiver = InputExecutor(self._input_queue)
+        self._input_receiver = MouseExecutor(self._input_queue)
         self._images_sender = ImageGenerator(self._image_queue)
         self._sound_receiver = SoundGenerator(self._sound_queue)
 

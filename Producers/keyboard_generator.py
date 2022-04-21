@@ -1,22 +1,16 @@
 from queue import Queue
 from Tools.keyboard_tool import KeyboardTool, Key
-from Tools.mouse_tool import MouseTool
 from Commons.input_actions import InputActions
 from threading import Thread
-from configurations import Configurations
 
 
-class InputGenerator:
+class KeyboardGenerator:
     def __init__(self, queue):
-        Configurations.LOGGER.warning("SERVER: Initialising Input Generator...")
         self._queue: Queue = queue
         self._keyboard = KeyboardTool()
-        self._mouse = MouseTool()
 
     def start(self):
-        Configurations.LOGGER.warning("SERVER: Starting Input Generator...")
         Thread(target=self._keyboard.listen_keyboard, args=(self.on_press, self.on_release,)).start()
-        Thread(target=self._mouse.listen_for_clicks, args=(self._on_move, self._on_click)).start()
 
     def on_press(self, key):
         if type(key) != Key:
@@ -29,9 +23,3 @@ class InputGenerator:
             self._queue.put(f"{InputActions.RELEASE.value}:{key.char}".encode())
         else:
             self._queue.put(f"{InputActions.RELEASE.value}:{key.name}".encode())
-
-    def _on_move(self, x, y):
-        self._queue.put(f"{InputActions.MOVE.value}:{x},{y}".encode())
-
-    def _on_click(self,x, y, button, pressed):
-        self._queue.put(f"{InputActions.CLICK.value}:{button},{pressed}".encode())

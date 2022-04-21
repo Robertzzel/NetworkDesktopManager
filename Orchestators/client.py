@@ -1,9 +1,10 @@
 from Consumers.image_displayer import ImageDisplayer
-from Producers.input_generator import InputGenerator
+from Producers.mouse_generator import MouseGenerator
+from Producers.keyboard_generator import KeyboardGenerator
 from Consumers.sound_player import SoundPlayer
 from Orchestators.orchestrator import Orchestrator
 from multiprocessing import Queue
-from threading import Thread
+from threading import Thread, Lock
 from socket import socket, AF_INET, SOCK_STREAM
 from configurations import Configurations
 
@@ -19,10 +20,13 @@ class Client(Orchestrator):
         self._sound_address = sound_address
 
         self._image_queue = Queue()
-        self._input_queue = Queue()
+        self._keyboard_queue = Queue()
+        self._mouse_queue = Queue(4)
         self._sound_queue = Queue()
+        self._input_lock = Lock()
 
-        self._input_sender = InputGenerator(self._input_queue)
+        self._keyboard_generator = KeyboardGenerator(self._keyboard_queue)
+        self._input_sender = MouseGenerator(self._mouse_queue)
         self._sound_sender = SoundPlayer(self._sound_queue)
         self._images_receiver = ImageDisplayer(self._image_queue)
 
@@ -52,9 +56,22 @@ class Client(Orchestrator):
         Configurations.LOGGER.warning("CLIENT: Connecting to input server...")
         self._input_socket.connect(self._input_address)
         Configurations.LOGGER.warning(f"CLIENT: Connected to input server at {self._input_address}")
+        Thread(target=self._handle_keyboard_events).start()
+        Thread(target=self._handle_mouse_events).start()
+
+    def _handle_keyboard_events(self):
         while self._running:
-            event = self._input_queue.get()
+            event = self._keyboard_queue.get()
+            self._input_lock.acquire()
             self.send_message(self._input_socket, event, Configurations.INPUT_MAX_SIZE)
+            self._input_lock.release()
+
+    def _handle_mouse_events(self):
+        while self._running:
+            event = self._mouse_queue.get()
+            self._input_lock.acquire()
+            self.send_message(self._input_socket, event, Configurations.INPUT_MAX_SIZE)
+            self._input_lock.release()
 
     def _connect_to_sound_server(self):
         Configurations.LOGGER.warning("CLIENT: Connecting to sound server...")

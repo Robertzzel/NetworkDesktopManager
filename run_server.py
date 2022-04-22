@@ -1,10 +1,11 @@
 import time
 import threading
-from Screen.server import Server
+from Orchestators.server import Server
 from configurations import Configurations
 
 ADDRESS = (Configurations.SERVER_IP, 5001)
 ADDRESS_INPUT = (Configurations.SERVER_IP, 5002)
+ADDRESS_SOUND = (Configurations.SERVER_IP, 5003)
 
 
 def stop(sr):
@@ -15,7 +16,10 @@ def stop(sr):
 
 
 if __name__ == "__main__":
-    sr = Server(ADDRESS, ADDRESS_INPUT)
-    threading.Thread(target=sr.start).start()
-    #stop(sr)
+    sr = Server(ADDRESS, ADDRESS_INPUT, ADDRESS_SOUND)
+    try:
+        sr.start()
+    except:
+        print("stop apelat server")
+        sr.stop()
 

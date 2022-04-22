@@ -1,6 +1,7 @@
-class BaseConnection:
+class Orchestrator:
     def receive_message(self, sock, length_max_size: int) -> bytes:
-        length = int(sock.recv(length_max_size).decode())
+        length_data = sock.recv(length_max_size).decode()
+        length = int(length_data)
         return self.recv_all(sock, length)
 
     def send_message(self, sock, message: bytes, length_max_size: int):

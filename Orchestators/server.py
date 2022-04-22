@@ -1,5 +1,5 @@
 from Producers.image_generator import ImageGenerator
-from Consumers.mouse_executor import MouseExecutor
+from Consumers.input_executor import InputExecutor
 from Producers.sound_generator import SoundGenerator
 from Orchestators.orchestrator import Orchestrator
 from multiprocessing import Queue
@@ -23,7 +23,7 @@ class Server(Orchestrator):
         self._input_queue = Queue()
         self._sound_queue = Queue()
 
-        self._input_receiver = MouseExecutor(self._input_queue)
+        self._input_receiver = InputExecutor(self._input_queue)
         self._images_sender = ImageGenerator(self._image_queue)
         self._sound_receiver = SoundGenerator(self._sound_queue)
 
@@ -34,13 +34,13 @@ class Server(Orchestrator):
         Configurations.LOGGER.warning("SERVER: Starting...")
         self._connect()
 
-        #self._input_receiver.start()
+        self._input_receiver.start()
         #self._sound_receiver.start()
         self._images_sender.start()
 
     def _connect(self):
         Thread(target=self._listen_for_image_connections).start()
-        #Thread(target=self._listen_for_input_connection).start()
+        Thread(target=self._listen_for_input_connection).start()
         #Thread(target=self._listen_for_sound_connection).start()
 
     def _listen_for_image_connections(self):

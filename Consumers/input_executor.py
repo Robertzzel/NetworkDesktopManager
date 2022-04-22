@@ -6,7 +6,7 @@ from queue import Queue
 from configurations import Configurations
 
 
-class MouseExecutor:
+class InputExecutor:
     def __init__(self, queue):
         Configurations.LOGGER.warning("SERVER: Initialising Input Executor...")
 

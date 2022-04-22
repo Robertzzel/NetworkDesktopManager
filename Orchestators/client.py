@@ -19,7 +19,7 @@ class Client(Orchestrator):
         self._input_address = input_address
         self._sound_address = sound_address
 
-        self._image_queue = Queue()
+        self._image_queue = Queue(4)
         self._keyboard_queue = Queue()
         self._mouse_queue = Queue(4)
         self._sound_queue = Queue()
@@ -41,7 +41,7 @@ class Client(Orchestrator):
 
     def _connect(self):
         Thread(target=self._connect_to_image_server).start()
-        #Thread(target=self._connect_to_input_server).start()
+        Thread(target=self._connect_to_input_server).start()
         #Thread(target=self._connect_to_sound_server).start()
 
     def _connect_to_image_server(self):
@@ -57,7 +57,7 @@ class Client(Orchestrator):
         self._input_socket.connect(self._input_address)
         Configurations.LOGGER.warning(f"CLIENT: Connected to input server at {self._input_address}")
         Thread(target=self._handle_keyboard_events).start()
-        Thread(target=self._handle_mouse_events).start()
+        self._handle_mouse_events()
 
     def _handle_keyboard_events(self):
         while self._running:

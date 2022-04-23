@@ -35,7 +35,7 @@ class InputExecutor:
             action = InputActions(int(action))
             if action == InputActions.MOVE:
                 x, y = details.split(",")
-                self._mouse.move_pointer(x,y)
+                self._mouse.move_pointer(int(x), int(y))
             elif action == InputActions.PRESS:
                 self._keyboard.press_letter(details)
             elif action == InputActions.RELEASE:

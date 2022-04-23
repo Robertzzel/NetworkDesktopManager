@@ -26,7 +26,7 @@ class Client(Orchestrator):
         self._input_lock = Lock()
 
         self._keyboard_generator = KeyboardGenerator(self._keyboard_queue)
-        self._input_sender = MouseGenerator(self._mouse_queue)
+        self._mouse_sender = MouseGenerator(self._mouse_queue)
         self._sound_sender = SoundPlayer(self._sound_queue)
         self._images_receiver = ImageDisplayer(self._image_queue)
 
@@ -35,14 +35,15 @@ class Client(Orchestrator):
     def start(self):
         self._connect()
 
-        #self._input_sender.start()
-        #self._sound_sender.start()
+        #self._mouse_sender.start()
+        #self._keyboard_generator.start()
+        self._sound_sender.start()
         self._images_receiver.start()
 
     def _connect(self):
         Thread(target=self._connect_to_image_server).start()
-        Thread(target=self._connect_to_input_server).start()
-        #Thread(target=self._connect_to_sound_server).start()
+        #Thread(target=self._connect_to_input_server).start()
+        Thread(target=self._connect_to_sound_server).start()
 
     def _connect_to_image_server(self):
         Configurations.LOGGER.warning("CLIENT: Connecting to image server...")

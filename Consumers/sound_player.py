@@ -2,6 +2,7 @@ import sounddevice as sd
 from threading import Thread
 from queue import Queue
 from configurations import Configurations
+from numpy import frombuffer, float32
 
 
 class SoundPlayer:
@@ -18,7 +19,8 @@ class SoundPlayer:
     def _start_recording_sending(self):
         while self._running:
             data = self._queue.get()
-            sd.play(data, frames=44100, channels=2)
+            sounds = frombuffer(data, float32)
+            sd.play(sounds)
             sd.wait()
 
     def stop(self):

@@ -1,10 +1,9 @@
 from queue import Queue
 import sounddevice as sd
 from threading import Thread
-import numpy as np
-import cv2
+from multiprocessing import Process
 
-sd.default.device[0] = 2
+sd.default.device[0] = 21
 print(sd.query_devices())
 q = Queue()
 
@@ -26,8 +25,13 @@ def play():
         print("finish playing")
 
 if __name__ == "__main__":
-    Thread(target=play).start()
+    Process(target=play).start()
     record()
+    # sd.default.device[0] = 21
+    # recording = sd.rec(2 * 44100, samplerate=44100, channels=2)
+    # sd.wait()
+    # sd.play(recording)
+    # sd.wait()
 
 
 

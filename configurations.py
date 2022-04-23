@@ -8,12 +8,12 @@ class Configurations:
     IMAGES_TYPE = ".jpg"
     CURSOR_IMAGE_PATH = f"{Path(__file__).parent}\\Images\\cursor.png"
     LENGTH_MAX_SIZE = 8
-    INPUT_MAX_SIZE = 3
+    INPUT_MAX_SIZE = 8
     WINDOW_NAME = "LIVE"
     LOGGER_NAME = "BEST_NAME"
     LOGGER = logging.getLogger(LOGGER_NAME)
     SOUND_RECORD_SECONDS = 3
     SOUND_CHANNELS = 2
     SOUND_FRAMES = 44100
-    SOUND_DEVICE = 2
+    SOUND_DEVICE = 21
 

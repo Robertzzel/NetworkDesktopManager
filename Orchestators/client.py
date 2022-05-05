@@ -1,3 +1,5 @@
+import time
+
 from Consumers.image_displayer import ImageDisplayer
 from Producers.mouse_generator import MouseGenerator
 from Producers.keyboard_generator import KeyboardGenerator
@@ -37,17 +39,25 @@ class Client(Orchestrator):
 
         #self._mouse_sender.start()
         #self._keyboard_generator.start()
-        self._sound_sender.start()
+        #self._sound_sender.start()
         self._images_receiver.start()
 
     def _connect(self):
         Thread(target=self._connect_to_image_server).start()
         #Thread(target=self._connect_to_input_server).start()
-        Thread(target=self._connect_to_sound_server).start()
+        #Thread(target=self._connect_to_sound_server).start()
 
     def _connect_to_image_server(self):
         Configurations.LOGGER.warning("CLIENT: Connecting to image server...")
-        self._image_socket.connect(self._image_address)
+
+        while True and self._running:
+            try:
+                print(f"Trying to connect to {self._image_address}")
+                self._image_socket.connect(self._image_address)
+                break
+            except:
+                time.sleep(1)
+
         Configurations.LOGGER.warning(f"CLIENT: Connected to image server at {self._image_address}")
         while self._running:
             encoded_image = self.receive_message(self._image_socket, Configurations.LENGTH_MAX_SIZE)
@@ -55,7 +65,13 @@ class Client(Orchestrator):
 
     def _connect_to_input_server(self):
         Configurations.LOGGER.warning("CLIENT: Connecting to input server...")
-        self._input_socket.connect(self._input_address)
+        while True and self._running:
+            try:
+                print(f"Trying to connect to {self._input_address}")
+                self._input_socket.connect(self._input_address)
+                break
+            except:
+                time.sleep(1)
         Configurations.LOGGER.warning(f"CLIENT: Connected to input server at {self._input_address}")
         Thread(target=self._handle_keyboard_events).start()
         self._handle_mouse_events()
@@ -76,7 +92,13 @@ class Client(Orchestrator):
 
     def _connect_to_sound_server(self):
         Configurations.LOGGER.warning("CLIENT: Connecting to sound server...")
-        self._sound_socket.connect(self._sound_address)
+        while True and self._running:
+            try:
+                print(f"Trying to connect to {self._sound_address}")
+                self._sound_socket.connect(self._sound_address)
+                break
+            except:
+                time.sleep(1)
         Configurations.LOGGER.warning(f"CLIENT: Connected to sound server at {self._sound_address}")
         while self._running:
             sound = self.receive_message(self._sound_socket, Configurations.INPUT_MAX_SIZE)

@@ -1,3 +1,4 @@
+import time
 from multiprocessing import Process
 from queue import Queue
 from Commons.image_operations import ImageOperations
@@ -21,8 +22,10 @@ class ImageDisplayer:
             encoded_image_string = self._queue.get()
 
             try:
+                t = time.time()
                 image = ImageOperations.decode(encoded_image_string)
                 self.show_image(image)
+                print(f"{(time.time()-t)*1000}ms afisare")
             except:
                 pass
 

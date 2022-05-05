@@ -1,40 +1,19 @@
-from queue import Queue
-import sounddevice as sd
-from threading import Thread
-from multiprocessing import Process
-
-sd.default.device[0] = 21
-print(sd.query_devices())
-q = Queue()
-
-def record():
-    while True:
-        print("recording")
-        recording = sd.rec(3 * 44100, samplerate=44100, channels=2)
-        sd.wait()
-        print("done recording")
-        q.put(recording)
-
-
-def play():
-    while True:
-        recording = q.get()
-        print("Playing")
-        sd.play(recording)
-        sd.wait()
-        print("finish playing")
+import cv2
+import numpy as np
+from PIL.ImageGrab import grab
+import time
 
 if __name__ == "__main__":
-    Process(target=play).start()
-    record()
-    # sd.default.device[0] = 21
-    # recording = sd.rec(2 * 44100, samplerate=44100, channels=2)
-    # sd.wait()
-    # sd.play(recording)
-    # sd.wait()
+    s = time.time()
+    image = np.array(grab())
+    image = cv2.resize(image, (800, 600), cv2.INTER_AREA)
+    e1 = time.time()
 
+    encoded = cv2.imencode(".jpg", image)[1]
+    e2 = time.time()
 
-
-
-
-
+    decoded = cv2.imdecode(encoded, cv2.IMREAD_COLOR)
+    e3 = time.time()
+    print((e3-e2+e2-e1+e1-s)*1000)
+    cv2.imshow("das", decoded)
+    cv2.waitKey(0)

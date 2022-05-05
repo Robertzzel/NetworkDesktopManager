@@ -3,6 +3,7 @@ from sys import executable
 import run_client
 import run_server
 import time
+import signal
 
 
 if __name__ == "__main__":
@@ -16,7 +17,10 @@ if __name__ == "__main__":
     except:
         pass
 
-
+    receiver_process.send_signal(signal.SIGINT)
+    sender_process.send_signal(signal.SIGINT)
+    print("Sending interrupt")
+    time.sleep(3)
     receiver_process.kill()
     sender_process.kill()
 

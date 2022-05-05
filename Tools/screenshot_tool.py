@@ -1,5 +1,6 @@
+import cv2
 from cv2 import imread, cvtColor, COLOR_BGRA2BGR, COLOR_RGB2BGR
-from pyautogui import screenshot
+from PIL.ImageGrab import grab
 from pyautogui import position
 from numpy import array, ndarray
 from configurations import Configurations
@@ -9,7 +10,7 @@ from platform import platform
 
 class ScreenshotTool:
     def __init__(self):
-        self._screen_shape = array(screenshot()).shape
+        self._screen_shape = array(grab()).shape
         self.cursor_image: ndarray = imread(Configurations.CURSOR_IMAGE_PATH)
         self._monitor = {
             "top": 0,
@@ -32,14 +33,14 @@ class ScreenshotTool:
                     if not(x[0] < 150 and x[1] < 100 and x[2] < 100):
                         image[i, j, :] = x
 
-        return image
+        return cv2.resize(image, (800, 600), interpolation=cv2.INTER_AREA)
 
     def _get_screenshot_image(self):
         if self._is_windows:
             with mss() as sct:
                 return cvtColor(array(sct.grab(self._monitor)), COLOR_BGRA2BGR)
         else:
-            return cvtColor(array(screenshot()), COLOR_RGB2BGR)
+            return cvtColor(array(grab()), COLOR_RGB2BGR)
 
     def get_screen_shape(self):
         return self._screen_shape

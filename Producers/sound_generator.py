@@ -21,10 +21,8 @@ class SoundGenerator:
         while self._running:
             rec =sd.rec(Configurations.SOUND_RECORD_SECONDS * Configurations.SOUND_FRAMES,
                         samplerate=Configurations.SOUND_FRAMES, channels=Configurations.SOUND_CHANNELS)
-            #rec = sd.rec(3 * 44100, samplerate=44100, channels=2)
             sd.wait()
-            sound_bytes = rec.tobytes()
-            self._queue.put(sound_bytes)
+            self._queue.put(rec.tobytes())
 
     def stop(self):
         Configurations.LOGGER.warning("SERVER: Stopping Sound Generator...")

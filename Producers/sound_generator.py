@@ -10,8 +10,7 @@ class SoundGenerator:
         self._recording = None
         self._queue: Queue = queue
         self._running = True
-        sd.default.device[0] = Configurations.SOUND_DEVICE
-        sd.default.channels = Configurations.SOUND_CHANNELS
+        self._device_index = self._get_device_index()
 
     def start(self):
         Configurations.LOGGER.warning("SERVER: Starting Sound Generator...")
@@ -27,3 +26,9 @@ class SoundGenerator:
     def stop(self):
         Configurations.LOGGER.warning("SERVER: Stopping Sound Generator...")
         self._running = False
+
+    def _get_device_index(self):
+        for index, dev in enumerate(sd.query_devices()):
+            if 'pulse' in dev['name']:
+                return index
+        raise Exception("Pulse device not found")

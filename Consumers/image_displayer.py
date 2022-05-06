@@ -22,10 +22,8 @@ class ImageDisplayer:
             encoded_image_string = self._queue.get()
 
             try:
-                t = time.time()
                 image = ImageOperations.decode(encoded_image_string)
                 self.show_image(image)
-                print(f"{(time.time()-t)*1000}ms afisare")
             except:
                 pass
 

@@ -4,7 +4,7 @@ import logging
 
 
 class Configurations:
-    SERVER_IP = "localhost" #"26.146.244.0"
+    SERVER_IP = Computer.get_wifi_ip_address() #"26.146.244.0"
     IMAGES_TYPE = ".jpg"
     CURSOR_IMAGE_PATH = f"{Path(__file__).parent}/Images/cursor.png"
     LENGTH_MAX_SIZE = 8
@@ -14,6 +14,6 @@ class Configurations:
     LOGGER = logging.getLogger(LOGGER_NAME)
     SOUND_RECORD_SECONDS = 10
     SOUND_CHANNELS = 2
-    SOUND_FRAMES = 44100/16
+    SOUND_FRAMES = int(44100/16)
     SOUND_DEVICE = 20
 

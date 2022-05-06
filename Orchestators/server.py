@@ -34,14 +34,14 @@ class Server(Orchestrator):
         Configurations.LOGGER.warning("SERVER: Starting...")
         self._connect()
 
-        #self._input_receiver.start()
-        #self._sound_receiver.start()
+        self._input_receiver.start()
+        self._sound_receiver.start()
         self._images_sender.start()
 
     def _connect(self):
         Thread(target=self._listen_for_image_connections).start()
-        #Thread(target=self._listen_for_input_connection).start()
-        #Thread(target=self._listen_for_sound_connection).start()
+        Thread(target=self._listen_for_input_connection).start()
+        Thread(target=self._listen_for_sound_connection).start()
 
     def _listen_for_image_connections(self):
         Configurations.LOGGER.warning("SERVER: Listening for image connections...")

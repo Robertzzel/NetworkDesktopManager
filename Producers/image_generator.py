@@ -21,11 +21,8 @@ class ImageGenerator:
 
     def _start_sending(self):
         while True:
-            s = time.time()
             image = self._tool.get_screenshot()
-            e = time.time()
             encoded_image = ImageOperations.encode(image)
-            print(f"\ncapture time {(e-s)*1000}ms , encoding:{(time.time()-e)*1000}ms")
             try:
                 self._queue.put_nowait(encoded_image)
             except Full:

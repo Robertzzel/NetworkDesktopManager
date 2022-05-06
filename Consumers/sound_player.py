@@ -20,8 +20,8 @@ class SoundPlayer:
         while self._running:
             data = self._queue.get()
             sounds = frombuffer(data, float32)
-            sounds.shape = (sounds.shape[0]//2, 2)
-            sd.play(sounds)
+            sounds.shape = (sounds.shape[0]//Configurations.SOUND_CHANNELS, Configurations.SOUND_CHANNELS)
+            sd.play(sounds, Configurations.SOUND_FRAMES)
             sd.wait()
 
     def stop(self):

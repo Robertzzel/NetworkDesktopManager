@@ -43,8 +43,8 @@ class Client(Orchestrator):
 
     def _connect(self):
         Thread(target=self._connect_to_image_server).start()
-        #Thread(target=self._connect_to_input_server).start()
-        #Thread(target=self._connect_to_sound_server).start()
+        Thread(target=self._connect_to_input_server).start()
+        Thread(target=self._connect_to_sound_server).start()
 
     def _connect_to_image_server(self):
         Configurations.LOGGER.warning("CLIENT: Connecting to image server...")
@@ -53,10 +53,8 @@ class Client(Orchestrator):
 
         while self._running:
             encoded_image = self.receive_message(self._image_socket, Configurations.LENGTH_MAX_SIZE)
-            if encoded_image is None:
-                self._reconnect_to_server()
-                return
-            self._image_queue.put(encoded_image)
+            if encoded_image is not None:
+                self._image_queue.put(encoded_image)
 
     def _connect_to_input_server(self):
         Configurations.LOGGER.warning("CLIENT: Connecting to input server...")

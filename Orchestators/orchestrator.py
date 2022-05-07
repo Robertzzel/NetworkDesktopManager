@@ -1,11 +1,9 @@
 class Orchestrator:
     def receive_message(self, sock, length_max_size: int):
         try:
-            length_data = sock.recv(length_max_size).decode()
+            length_data = self.recv_all(sock, length_max_size).decode()
             length = int(length_data)
             return self.recv_all(sock, length)
-        except ValueError:
-            return None
         except Exception as ex:
             length, image_part = self._get_actual_length_from_error(ex)
             if not (length is None or image_part is None or length == 0):
@@ -31,10 +29,11 @@ class Orchestrator:
         sock.sendall(message)
 
     def recv_all(self, sock, n):
-        final = bytearray()
+        final = b""
         received = 0
         while received < n:
             received_data = sock.recv(n - received)
             final += received_data
             received += len(received_data)
+        print(b"received: " + final[:5])
         return final

@@ -1,3 +1,5 @@
+import threading
+
 from Producers.image_generator import ImageGenerator
 from Consumers.input_executor import InputExecutor
 from Producers.sound_generator import SoundGenerator
@@ -46,11 +48,10 @@ class Server(Orchestrator):
     def _listen_for_image_connections(self):
         Configurations.LOGGER.warning("SERVER: Listening for image connections...")
         self._image_socket.listen()
-        while self._running:
-            connection, _ = self._image_socket.accept()
-            Configurations.LOGGER.warning(f"SERVER: Connected to image client {_}")
-            Thread(target=self._handle_image_connection, args=(connection,)).start()
-            self._connections.append(connection)
+
+        connection, _ = self._image_socket.accept()
+        Configurations.LOGGER.warning(f"SERVER: Connected to image client {_}")
+        Thread(target=self._handle_image_connection, args=(connection,)).start()
 
     def _handle_image_connection(self, connection):
         while self._running:
@@ -60,11 +61,10 @@ class Server(Orchestrator):
     def _listen_for_input_connection(self):
         Configurations.LOGGER.warning("SERVER: Listening for input connections...")
         self._input_socket.listen()
-        while self._running:
-            connection, _ = self._input_socket.accept()
-            Configurations.LOGGER.warning(f"SERVER: Connected to input client {_}")
-            Thread(target=self._handle_input_connection, args=(connection,)).start()
-            self._connections.append(connection)
+
+        connection, _ = self._input_socket.accept()
+        Configurations.LOGGER.warning(f"SERVER: Connected to input client {_}")
+        Thread(target=self._handle_input_connection, args=(connection,)).start()
 
     def _handle_input_connection(self, connection):
         while self._running:
@@ -74,11 +74,10 @@ class Server(Orchestrator):
     def _listen_for_sound_connection(self):
         Configurations.LOGGER.warning("SERVER: Listening for sound connections...")
         self._sound_socket.listen()
-        while self._running:
-            connection, _ = self._sound_socket.accept()
-            Configurations.LOGGER.warning(f"SERVER: Connected to sound client {_}")
-            Thread(target=self._handle_sound_connection, args=(connection,)).start()
-            self._connections.append(connection)
+
+        connection, _ = self._sound_socket.accept()
+        Configurations.LOGGER.warning(f"SERVER: Connected to sound client {_}")
+        Thread(target=self._handle_sound_connection, args=(connection,)).start()
 
     def _handle_sound_connection(self, connection):
         while self._running:

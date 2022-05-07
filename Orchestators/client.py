@@ -103,12 +103,10 @@ class Client(Orchestrator):
         self._images_receiver.stop()
 
     def _reconnect_to_server(self):
-        self.disconnect()
         self._image_queue = Queue(4)
         self._keyboard_queue = Queue()
         self._mouse_queue = Queue(4)
         self._sound_queue = Queue()
-        self._connect()
 
     def connect_to_address(self, sock, address):
         while self._running:

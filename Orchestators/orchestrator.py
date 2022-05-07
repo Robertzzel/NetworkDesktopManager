@@ -4,20 +4,25 @@ class Orchestrator:
             length_data = sock.recv(length_max_size).decode()
             length = int(length_data)
             return self.recv_all(sock, length)
+        except ValueError:
+            self.stop()
         except Exception as ex:
-            bad_length: bytes = length_data
-            length = None
-            image_component = b''
-            for i in range(1, len(bad_length)):
-                new_length_bytes = bad_length[:len(bad_length) - i]
-                try:
-                    length = int(new_length_bytes)
-                except:
-                    continue
+            length, image_part = self._get_actual_length_from_error(ex)
+            if length is None or image_part is None or length == 0:
+                return None
+            return image_part + self.recv_all(sock, length)
 
-                image_component += bad_length[len(bad_length) - i:]
-                return self.recv_all(sock, length)
-            raise Exception("Really bad transmission")
+    def _get_actual_length_from_error(self, exception):
+        bad_length: bytes = exception.object
+        for i in range(1, len(bad_length)):
+            new_length_bytes = bad_length[:len(bad_length) - i]
+            try:
+                length = int(new_length_bytes)
+                image_component = bad_length[len(bad_length) - i:]
+                return length, image_component
+            except:
+                continue
+        return None, None
 
     def send_message(self, sock, message: bytes, length_max_size: int):
         length_string = str(len(message)).rjust(length_max_size, "0")
@@ -32,3 +37,6 @@ class Orchestrator:
             final += received_data
             received += len(received_data)
         return final
+
+    def stop(self):
+        pass

@@ -1,5 +1,4 @@
 import time
-
 from Consumers.image_displayer import ImageDisplayer
 from Producers.mouse_generator import MouseGenerator
 from Producers.keyboard_generator import KeyboardGenerator
@@ -49,30 +48,21 @@ class Client(Orchestrator):
 
     def _connect_to_image_server(self):
         Configurations.LOGGER.warning("CLIENT: Connecting to image server...")
-
-        while True and self._running:
-            try:
-                print(f"Trying to connect to {self._image_address}")
-                self._image_socket.connect(self._image_address)
-                break
-            except:
-                time.sleep(1)
-
+        self.connect_to_address(self._image_socket, self._image_address)
         Configurations.LOGGER.warning(f"CLIENT: Connected to image server at {self._image_address}")
+
         while self._running:
             encoded_image = self.receive_message(self._image_socket, Configurations.LENGTH_MAX_SIZE)
+            if encoded_image is None:
+                self._reconnect_to_server()
+                return
             self._image_queue.put(encoded_image)
 
     def _connect_to_input_server(self):
         Configurations.LOGGER.warning("CLIENT: Connecting to input server...")
-        while True and self._running:
-            try:
-                print(f"Trying to connect to {self._input_address}")
-                self._input_socket.connect(self._input_address)
-                break
-            except:
-                time.sleep(1)
+        self.connect_to_address(self._input_socket, self._input_address)
         Configurations.LOGGER.warning(f"CLIENT: Connected to input server at {self._input_address}")
+
         Thread(target=self._handle_keyboard_events).start()
         self._handle_mouse_events()
 
@@ -92,24 +82,38 @@ class Client(Orchestrator):
 
     def _connect_to_sound_server(self):
         Configurations.LOGGER.warning("CLIENT: Connecting to sound server...")
-        while True and self._running:
-            try:
-                print(f"Trying to connect to {self._sound_address}")
-                self._sound_socket.connect(self._sound_address)
-                break
-            except:
-                time.sleep(1)
+        self.connect_to_address(self._sound_socket, self._sound_address)
         Configurations.LOGGER.warning(f"CLIENT: Connected to sound server at {self._sound_address}")
+
         while self._running:
             sound = self.receive_message(self._sound_socket, Configurations.INPUT_MAX_SIZE)
             self._sound_queue.put(sound)
 
-    def stop(self):
-        Configurations.LOGGER.warning("CLIENT: Stopping...")
-        self._running = False
+    def disconnect(self):
         self._sound_socket.close()
         self._input_socket.close()
         self._image_socket.close()
 
+    def stop(self):
+        Configurations.LOGGER.warning("CLIENT: Stopping...")
+        self._running = False
+        self.disconnect()
+
         self._sound_sender.stop()
         self._images_receiver.stop()
+
+    def _reconnect_to_server(self):
+        self.disconnect()
+        self._image_queue = Queue(4)
+        self._keyboard_queue = Queue()
+        self._mouse_queue = Queue(4)
+        self._sound_queue = Queue()
+        self._connect()
+
+    def connect_to_address(self, sock, address):
+        while self._running:
+            try:
+                sock.connect(address)
+                break
+            except:
+                time.sleep(1)

@@ -7,7 +7,7 @@ class Configurations:
     SERVER_IP = Computer.get_wifi_ip_address() #"26.146.244.0"
     IMAGES_TYPE = ".jpg"
     CURSOR_IMAGE_PATH = f"{Path(__file__).parent}/Images/cursor.png"
-    LENGTH_MAX_SIZE = 8
+    LENGTH_MAX_SIZE = 16
     INPUT_MAX_SIZE = 8
     WINDOW_NAME = "LIVE"
     LOGGER_NAME = "BEST_NAME"

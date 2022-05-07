@@ -37,15 +37,15 @@ class Client(Orchestrator):
     def start(self):
         self._connect()
 
-        self._mouse_sender.start()
-        self._keyboard_generator.start()
-        self._sound_sender.start()
+        #self._mouse_sender.start()
+        #self._keyboard_generator.start()
+        #self._sound_sender.start()
         self._images_receiver.start()
 
     def _connect(self):
         Thread(target=self._connect_to_image_server).start()
-        Thread(target=self._connect_to_input_server).start()
-        Thread(target=self._connect_to_sound_server).start()
+        #Thread(target=self._connect_to_input_server).start()
+        #Thread(target=self._connect_to_sound_server).start()
 
     def _connect_to_image_server(self):
         Configurations.LOGGER.warning("CLIENT: Connecting to image server...")

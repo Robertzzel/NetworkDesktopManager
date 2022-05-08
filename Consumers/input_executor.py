@@ -43,8 +43,6 @@ class InputExecutor:
             elif action == InputActions.CLICK:
                 button, pressed = details.split(",")
                 self.click_mapper[f"{button}{pressed}"]()
-            else:
-                print("action 404")
 
     def stop(self):
         Configurations.LOGGER.warning("SERVER: Stopping Input Executor")

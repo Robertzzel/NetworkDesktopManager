@@ -12,7 +12,8 @@ import struct
 
 
 if __name__ == "__main__":
-    enc = struct.pack( 4*'c', "0012")
-    dec = struct.unpack(4*'c', enc)
+    x = "0012"
+    enc = struct.pack(f'{len(x)}s', x.encode())
+    dec = struct.unpack(f'{len(x)}s', enc)
     print(dec)
 

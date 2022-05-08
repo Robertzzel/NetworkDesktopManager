@@ -18,8 +18,7 @@ class SoundPlayer:
 
     def _start_recording_sending(self):
         while self._running:
-            data = self._queue.get()
-            sounds = frombuffer(data, float32)
+            sounds = frombuffer(self._queue.get(), float32)
             sounds.shape = (sounds.shape[0]//Configurations.SOUND_CHANNELS, Configurations.SOUND_CHANNELS)
             sd.play(sounds, Configurations.SOUND_FRAMES)
             sd.wait()

@@ -1,5 +1,3 @@
-import threading
-
 from Producers.image_generator import ImageGenerator
 from Consumers.input_executor import InputExecutor
 from Producers.sound_generator import SoundGenerator
@@ -30,7 +28,6 @@ class Server(Orchestrator):
         self._sound_receiver = SoundGenerator(self._sound_queue)
 
         self._running = True
-        self._connections = [self._sound_socket, self._image_socket, self._input_socket]
 
     def start(self):
         Configurations.LOGGER.warning("SERVER: Starting...")
@@ -51,7 +48,7 @@ class Server(Orchestrator):
 
         connection, _ = self._image_socket.accept()
         Configurations.LOGGER.warning(f"SERVER: Connected to image client {_}")
-        Thread(target=self._handle_image_connection, args=(connection,)).start()
+        self._handle_image_connection(connection)
 
     def _handle_image_connection(self, connection):
         while self._running:
@@ -64,12 +61,15 @@ class Server(Orchestrator):
 
         connection, _ = self._input_socket.accept()
         Configurations.LOGGER.warning(f"SERVER: Connected to input client {_}")
-        Thread(target=self._handle_input_connection, args=(connection,)).start()
+        self._handle_input_connection(connection)
 
     def _handle_input_connection(self, connection):
         while self._running:
             input_event = self.receive_message(connection, Configurations.INPUT_MAX_SIZE).decode()
-            self._input_queue.put(input_event)
+            if input_event is not None:
+                self._input_queue.put(input_event)
+            else:
+                self.stop()
 
     def _listen_for_sound_connection(self):
         Configurations.LOGGER.warning("SERVER: Listening for sound connections...")
@@ -77,7 +77,7 @@ class Server(Orchestrator):
 
         connection, _ = self._sound_socket.accept()
         Configurations.LOGGER.warning(f"SERVER: Connected to sound client {_}")
-        Thread(target=self._handle_sound_connection, args=(connection,)).start()
+        self._handle_sound_connection(connection)
 
     def _handle_sound_connection(self, connection):
         while self._running:
@@ -87,10 +87,11 @@ class Server(Orchestrator):
     def stop(self):
         Configurations.LOGGER.warning("SERVER: Stopping...")
         self._running = False
-        map(lambda conn: conn.close(), self._connections)
+
+        self._sound_socket.close()
+        self._image_socket.close()
+        self._input_socket.close()
+
         self._images_sender.stop()
         self._input_receiver.stop()
-        self._sound_receiver.stop()
-        self._input_receiver.stop()
-        self._images_sender.stop()
         self._sound_receiver.stop()

@@ -19,10 +19,8 @@ class ImageDisplayer:
     def _start_receiving(self):
         namedWindow(Configurations.WINDOW_NAME, WINDOW_NORMAL)
         while True:
-            encoded_image_string = self._queue.get()
-
             try:
-                image = ImageOperations.decode(encoded_image_string)
+                image = ImageOperations.decode(self._queue.get())
                 self.show_image(image)
             except:
                 pass

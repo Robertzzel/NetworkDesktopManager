@@ -55,6 +55,8 @@ class Client(Orchestrator):
             encoded_image = self.receive_message(self._image_socket, Configurations.LENGTH_MAX_SIZE)
             if encoded_image is not None:
                 self._image_queue.put(encoded_image)
+            else:
+                self.stop()
 
     def _connect_to_input_server(self):
         Configurations.LOGGER.warning("CLIENT: Connecting to input server...")
@@ -85,7 +87,10 @@ class Client(Orchestrator):
 
         while self._running:
             sound = self.receive_message(self._sound_socket, Configurations.INPUT_MAX_SIZE)
-            self._sound_queue.put(sound)
+            if sound is not None:
+                self._sound_queue.put(sound)
+            else:
+                self.stop()
 
     def disconnect(self):
         self._sound_socket.close()
@@ -96,15 +101,8 @@ class Client(Orchestrator):
         Configurations.LOGGER.warning("CLIENT: Stopping...")
         self._running = False
         self.disconnect()
-
         self._sound_sender.stop()
         self._images_receiver.stop()
-
-    def _reconnect_to_server(self):
-        self._image_queue = Queue(4)
-        self._keyboard_queue = Queue()
-        self._mouse_queue = Queue(4)
-        self._sound_queue = Queue()
 
     def connect_to_address(self, sock, address):
         while self._running:

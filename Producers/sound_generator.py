@@ -7,7 +7,6 @@ from configurations import Configurations
 class SoundGenerator:
     def __init__(self, queue):
         Configurations.LOGGER.warning("SERVER: Initialising Sound Generator...")
-        self._recording = None
         self._queue: Queue = queue
         self._running = True
         self._device_index = self._get_device_index()
@@ -18,8 +17,8 @@ class SoundGenerator:
 
     def _start_recording_sending(self):
         while self._running:
-            rec =sd.rec(Configurations.SOUND_RECORD_SECONDS * Configurations.SOUND_FRAMES,
-                        samplerate=Configurations.SOUND_FRAMES, channels=Configurations.SOUND_CHANNELS)
+            rec = sd.rec(Configurations.SOUND_RECORD_SECONDS * Configurations.SOUND_FRAMES,
+                         samplerate=Configurations.SOUND_FRAMES, channels=Configurations.SOUND_CHANNELS)
             sd.wait()
             self._queue.put(rec.tobytes())
 

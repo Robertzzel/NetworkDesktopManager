@@ -9,7 +9,7 @@ class Orchestrator:
             if not (length is None or image_part is None or length == 0):
                 return image_part + self.recv_all(sock, length)
 
-            return None
+        return None
 
     def _get_actual_length_from_error(self, exception):
         bad_length: bytes = exception.object
@@ -35,5 +35,4 @@ class Orchestrator:
             received_data = sock.recv(n - received)
             final += received_data
             received += len(received_data)
-        print(b"received: " + final[:5])
         return final

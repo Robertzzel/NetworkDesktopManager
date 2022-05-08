@@ -21,10 +21,8 @@ class ImageGenerator:
 
     def _start_sending(self):
         while True:
-            image = self._tool.get_screenshot()
-            encoded_image = ImageOperations.encode(image)
             try:
-                self._queue.put_nowait(encoded_image)
+                self._queue.put_nowait(ImageOperations.encode(self._tool.get_screenshot()))
             except Full:
                 pass
 

@@ -13,6 +13,7 @@ class ImageGenerator:
         self._queue: Queue = queue
         self._tool = ScreenshotTool()
         self._process: Process = None
+        self._alive = True
 
     def start(self):
         Configurations.LOGGER.warning("SERVER: Starting Image Generator...")
@@ -20,12 +21,19 @@ class ImageGenerator:
         self._process.start()
 
     def _start_sending(self):
-        while True:
+        while self._alive:
             try:
                 self._queue.put_nowait(ImageOperations.encode(self._tool.get_screenshot()))
             except Full:
                 pass
 
     def stop(self):
-        Configurations.LOGGER.warning("SERVER: Stopping Image Generator...")
-        self._process.kill()
+        if self._process.is_alive():
+            Configurations.LOGGER.warning("SERVER: Stopping Image Generator...")
+            self._alive = False
+            self._process.kill()
+            time.sleep(0.5)
+            self._process.close()
+
+    def is_alive(self):
+        return self._process.is_alive() or self._alive

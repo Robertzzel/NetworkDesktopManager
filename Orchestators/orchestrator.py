@@ -5,11 +5,10 @@ class Orchestrator:
             length = int(length_data)
             return self.recv_all(sock, length)
         except Exception as ex:
-            length, image_part = self._get_actual_length_from_error(ex)
-            if not (length is None or image_part is None or length == 0):
-                return image_part + self.recv_all(sock, length)
-
-        return None
+            # length, image_part = self._get_actual_length_from_error(ex)
+            # if not (length is None or image_part is None or length == 0):
+            #     return image_part + self.recv_all(sock, length)
+            return None
 
     def _get_actual_length_from_error(self, exception):
         bad_length: bytes = exception.object

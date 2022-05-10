@@ -1,19 +1,21 @@
-import cv2
-import numpy as np
-import scipy.io.wavfile
-from PIL.ImageGrab import grab
+import threading
 import time
-import sounddevice as sd
-import soundfile as sf
-import pickle
-from Commons.image_operations import *
-from Tools.screenshot_tool import *
-import struct
 
+from Producers.sound_generator import SoundGenerator
+from Consumers.sound_player import SoundPlayer
+from Producers.image_generator import ImageGenerator
+from Consumers.image_displayer import ImageDisplayer
+from multiprocessing import Queue
 
 if __name__ == "__main__":
-    x = "0012"
-    enc = struct.pack(f'{len(x)}s', x.encode())
-    dec = struct.unpack(f'{len(x)}s', enc)
-    print(dec)
+    q = Queue(1)
+    ig = SoundGenerator(q)
+    id = SoundPlayer(q)
+    ig.start()
+    id.start()
 
+    time.sleep(1)
+    ig.stop()
+    id.stop()
+    time.sleep(2)
+    print(threading.active_count())

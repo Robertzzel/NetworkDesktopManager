@@ -12,7 +12,7 @@ class Configurations:
     WINDOW_NAME = "LIVE"
     LOGGER_NAME = "BEST_NAME"
     LOGGER = logging.getLogger(LOGGER_NAME)
-    SOUND_RECORD_SECONDS = 10
+    SOUND_RECORD_SECONDS = 1
     SOUND_CHANNELS = 2
     SOUND_FRAMES = int(44100/16)
     SOUND_DEVICE = 20

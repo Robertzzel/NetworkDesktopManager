@@ -13,7 +13,6 @@ def received_signal(signal, frame):
     print("received signal on server")
     sr.stop()
     time.sleep(1)
-    exit(0)
 
 
 if __name__ == "__main__":

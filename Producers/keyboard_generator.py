@@ -8,9 +8,11 @@ class KeyboardGenerator:
     def __init__(self, queue):
         self._queue: Queue = queue
         self._keyboard = KeyboardTool()
+        self._thread: Thread = None
 
     def start(self):
-        Thread(target=self._keyboard.listen_keyboard, args=(self.on_press, self.on_release,)).start()
+        self._thread = Thread(target=self._keyboard.listen_keyboard, args=(self.on_press, self.on_release,), daemon=True)
+        self._thread.start()
 
     def on_press(self, key):
         if type(key) != Key:
@@ -23,3 +25,9 @@ class KeyboardGenerator:
             self._queue.put(f"{InputActions.RELEASE.value}:{key.char}".encode())
         else:
             self._queue.put(f"{InputActions.RELEASE.value}:{key.name}".encode())
+
+    def stop(self):
+        self._thread.join(1)
+
+    def is_alive(self):
+        return self._thread.is_alive()

@@ -1,39 +1,35 @@
 import sounddevice as sd
-from threading import Thread
-from queue import Queue
 from configurations import Configurations
 from numpy import frombuffer, float32
-from Commons.thread_table import ThreadTable
+import zmq, sys
 
 
 class SoundPlayer:
-    def __init__(self, queue):
-        Configurations.LOGGER.warning("CLIENT: Initialising Sound Player...")
-        self._alive = True
-        self._queue: Queue = queue
-        self._thread_table = ThreadTable.get_threading_table()
-        self._thread: Thread = None
+    def __init__(self, port):
+        self._socket = zmq.Context().socket(zmq.PAIR)
+        self._socket.connect(f"tcp://localhost:{port}")
+        print(f"Conecatat la {port}")
 
     def start(self):
-        self._thread = self._thread_table.new_thread(target=self._start_recording_sending)
-        Configurations.LOGGER.warning(f"CLIENT: Started Sound Player on thread {self._thread.ident}...")
-
-    def _start_recording_sending(self):
-        while self._alive:
-            try:
-                sounds = frombuffer(self._queue.get(timeout=1), float32)
+        while True:
+            action = self._socket.recv()
+            if action == b"0":
+                sound = self._socket.recv_pyobj()
+                sounds = frombuffer(sound, float32)
                 sounds.shape = (sounds.shape[0]//Configurations.SOUND_CHANNELS, Configurations.SOUND_CHANNELS)
                 sd.play(sounds, Configurations.SOUND_FRAMES)
                 sd.wait()
-            except:
-                continue
+            elif action == b"1":
+                sd.stop()
+                sd._terminate()
+                break
+        print("Terminat")
 
-    def is_alive(self):
-        return self._thread.is_alive()
 
-    def stop(self):
-        Configurations.LOGGER.warning("CLIENT: Stopping Sound Player...")
-        self._alive = False
-        sd.stop()
-        self._thread.join(timeout=0.5)
+if __name__ == "__main__":
+    if len(sys.argv) == 2:
+        SoundPlayer(sys.argv[1]).start()
+    else:
+        print("No port given")
+
 

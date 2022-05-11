@@ -1,7 +1,8 @@
 import time
+import zmq, sys
+from pathlib import Path
 from Consumers.image_displayer import ImageDisplayer
-from Producers.mouse_generator import MouseGenerator
-from Producers.keyboard_generator import KeyboardGenerator
+from Producers.input_generator import InputGenerator
 from Consumers.sound_player import SoundPlayer
 from Orchestators.orchestrator import Orchestrator
 from multiprocessing import Queue
@@ -9,123 +10,77 @@ from threading import Lock
 from socket import socket, AF_INET, SOCK_STREAM
 from configurations import Configurations
 from Commons.thread_table import ThreadTable
+from subprocess import Popen
+from typing import *
 
 
 class Client(Orchestrator):
     def __init__(self, image_address, input_address, sound_address):
-        Configurations.LOGGER.warning(f"CLIENT: Initialising on thread {ThreadTable.get_current_thread_id()}...")
-        self._image_socket = socket(AF_INET, SOCK_STREAM)
-        self._input_socket = socket(AF_INET, SOCK_STREAM)
-        self._sound_socket = socket(AF_INET, SOCK_STREAM)
-        self._image_address = image_address
-        self._input_address = input_address
-        self._sound_address = sound_address
-
-        self._thread_table = ThreadTable.get_threading_table()
-
-        self._image_queue = Queue(4)
-        self._keyboard_queue = Queue()
-        self._mouse_queue = Queue(4)
-        self._sound_queue = Queue()
-        self._input_lock = Lock()
-
-        # self._keyboard_generator = KeyboardGenerator(self._keyboard_queue)
-        # self._mouse_sender = MouseGenerator(self._mouse_queue)
-        self._sound_sender = SoundPlayer(self._sound_queue)
-        self._images_receiver = ImageDisplayer(self._image_queue)
-
+        self._thread_pool = ThreadTable.get_threading_table()
         self._running = True
+        context = zmq.Context()
+        self._process_pool: List[Popen] = []
+
+        self._socket_image_server = context.socket(zmq.PAIR)
+        self._socket_image_server.bind(f"tcp://{image_address[0]}:{image_address[1]}")
+
+        self._socket_sound_server = context.socket(zmq.PAIR)
+        self._socket_sound_server.bind(f"tcp://{sound_address[0]}:{sound_address[1]}")
+
+        self._socket_input_server = context.socket(zmq.PAIR)
+        self._socket_input_server.bind(f"tcp://{input_address[0]}:{input_address[1]}")
+
+        self._socket_image_displayer = context.socket(zmq.PAIR)
+        self._image_displayer_port = self._socket_image_displayer.bind_to_random_port("tcp://*", min_port=6001, max_port=7004, max_tries=100)
+
+        self._socket_sound_player = context.socket(zmq.PAIR)
+        self._sound_player_port = self._socket_sound_player.bind_to_random_port("tcp://*", min_port=6001, max_port=7004, max_tries=100)
+
+        self._socket_input_generator = context.socket(zmq.PAIR)
+        self._input_generator_port = self._socket_input_generator.bind_to_random_port("tcp://*", min_port=6001, max_port=7004, max_tries=100)
 
     def start(self):
+        Configurations.LOGGER.warning("CLIENT: Starting...")
+
+        base_path = Path(__file__).parent.parent
+        process_paths = [base_path / "Consumers" / "image_displayer.py", base_path / "Consumers" / "sound_player.py", base_path / "Producers" / "input_generator.py"]
+        process_ports = [self._image_displayer_port, self._sound_player_port, self._input_generator_port]
+
+        for file, port in zip(process_paths, process_ports):
+            self._process_pool.append(Popen([sys.executable, file, port]))
+
         self._connect()
 
-        # self._mouse_sender.start()
-        # self._keyboard_generator.start()
-        self._sound_sender.start()
-        self._images_receiver.start()
-
     def _connect(self):
-        self._thread_table.new_thread(target=self._connect_to_image_server)
-        print("for image client")
-        # self._thread_table.new_thread(target=self._connect_to_input_server)
-        self._thread_table.new_thread(target=self._connect_to_sound_server)
-        print("sound client")
+        self._thread_pool.new_thread(target=self._connect_to_image_server)
+        # self._thread_pool.new_thread(target=self._connect_to_input_server)
+        # self._thread_pool.new_thread(target=self._connect_to_sound_server)
 
     def _connect_to_image_server(self):
-        Configurations.LOGGER.warning("CLIENT: Connecting to image server...")
-        self.connect_to_address(self._image_socket, self._image_address)
-        Configurations.LOGGER.warning(f"CLIENT: Connected to image server at {self._image_address}")
-
         while self._running:
-            encoded_image = self.receive_message(self._image_socket, Configurations.LENGTH_MAX_SIZE)
-            if encoded_image is not None:
-                self._image_queue.put(encoded_image)
-            else:
-                self.stop()
-
-    def _connect_to_input_server(self):
-        Configurations.LOGGER.warning("CLIENT: Connecting to input server...")
-        self.connect_to_address(self._input_socket, self._input_address)
-        Configurations.LOGGER.warning(f"CLIENT: Connected to input server at {self._input_address}")
-
-        self._thread_table.new_thread(target=self._handle_keyboard_events)
-        self._handle_mouse_events()
-
-    def _handle_keyboard_events(self):
-        while self._running:
-            event = self._keyboard_queue.get(timeout=3)
-            self._input_lock.acquire()
-            try:
-                self.send_message(self._input_socket, event, Configurations.INPUT_MAX_SIZE)
-            except:
-                self.stop()
-            self._input_lock.release()
-
-    def _handle_mouse_events(self):
-        while self._running:
-            event = self._mouse_queue.get(timeout=3)
-            self._input_lock.acquire()
-            try:
-                self.send_message(self._input_socket, event, Configurations.INPUT_MAX_SIZE)
-            except:
-                self.stop()
-            self._input_lock.release()
+            encoded_image = self._socket_image_server.recv_pyobj()
+            self._socket_image_displayer.send(b"0")
+            self._socket_image_displayer.send_pyobj(encoded_image)
+        self._socket_image_displayer.send(b"1")
 
     def _connect_to_sound_server(self):
-        Configurations.LOGGER.warning("CLIENT: Connecting to sound server...")
-        self.connect_to_address(self._sound_socket, self._sound_address)
-        Configurations.LOGGER.warning(f"CLIENT: Connected to sound server at {self._sound_address}")
-
         while self._running:
-            sound = self.receive_message(self._sound_socket, Configurations.INPUT_MAX_SIZE)
-            if sound is not None:
-                self._sound_queue.put(sound)
-            else:
-                self.stop()
+            sound = self._socket_sound_server.recv_pyobj()
+            self._socket_sound_player.send(b"0")
+            self._socket_sound_player.send_pyobj(sound)
+        self._socket_sound_player.send(b"1")
 
-    def disconnect(self):
-        self._sound_socket.close()
-        self._input_socket.close()
-        self._image_socket.close()
+    def _connect_to_input_server(self):
+        while self._running:
+            action = self._socket_input_generator.recv_string()
+            self._socket_input_server.send_string(action)
+        self._socket_input_generator.send(b"1")
 
     def stop(self):
         if self._running:
-            Configurations.LOGGER.warning("CLIENT: Stopping...")
             self._running = False
-            self.disconnect()
 
-            self._thread_table.join_all_threads(timeout=1)
+            for process in self._process_pool:
+                process.kill()
 
-            self._sound_sender.stop()
-            self._images_receiver.stop()
-            time.sleep(1)
-            Configurations.LOGGER.warning(f"CLIENT: Used threads after stop: {self._thread_table.number_of_alive_threads_in_table()} -> "
-                                          f"{self._thread_table.ac()}")
-
-    def connect_to_address(self, sock, address):
-        while self._running:
-            try:
-                sock.connect(address)
-                break
-            except:
-                time.sleep(1)
+            self._thread_pool.join_all_threads(timeout=1)

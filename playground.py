@@ -1,21 +1,27 @@
-import threading
-import time
+import zmq
+import asyncio
 
-from Producers.sound_generator import SoundGenerator
-from Consumers.sound_player import SoundPlayer
-from Producers.image_generator import ImageGenerator
-from Consumers.image_displayer import ImageDisplayer
-from multiprocessing import Queue
+
+async def send(socket):
+    socket = zmq.Context().socket(zmq.REQ)
+    socket.bind(f"tcp://*:{5001}")
+    socket.send(b"sal")
+
+
+async def sleep():
+    await asyncio.sleep(3)
+    print("gata sleepul")
+
+async def main():
+    socket = zmq.Context().socket(zmq.DEALER)
+    socket.bind(f"tcp://*:{5002}")
+
+    t1 = asyncio.create_task(send(socket))
+    t2 = asyncio.create_task(sleep())
+    await t2
+    await t1
+
 
 if __name__ == "__main__":
-    q = Queue(1)
-    ig = SoundGenerator(q)
-    id = SoundPlayer(q)
-    ig.start()
-    id.start()
+    asyncio.run(main())
 
-    time.sleep(1)
-    ig.stop()
-    id.stop()
-    time.sleep(2)
-    print(threading.active_count())

@@ -19,5 +19,7 @@ if __name__ == "__main__":
     sr = Server(ADDRESS, ADDRESS_INPUT, ADDRESS_SOUND)
     signal.signal(signalnum=signal.SIGINT, handler=received_signal)
     sr.start()
+    input()
+    sr.stop()
 
 

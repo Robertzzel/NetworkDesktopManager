@@ -15,7 +15,11 @@ if __name__ == "__main__":
         time.sleep(1)
         input()
     except:
-        pass
+        receiver_process.send_signal(signal.SIGINT)
+        sender_process.send_signal(signal.SIGINT)
+        time.sleep(3)
+        receiver_process.kill()
+        sender_process.kill()
     else:
         receiver_process.send_signal(signal.SIGINT)
         sender_process.send_signal(signal.SIGINT)

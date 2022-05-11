@@ -46,8 +46,8 @@ class Client(Orchestrator):
 
     def _connect(self):
         self._thread_pool.new_thread(target=self._connect_to_image_server)
-        # self._thread_pool.new_thread(target=self._connect_to_input_server)
-        # self._thread_pool.new_thread(target=self._connect_to_sound_server)
+        self._thread_pool.new_thread(target=self._connect_to_input_server)
+        self._thread_pool.new_thread(target=self._connect_to_sound_server)
 
     def _connect_to_image_server(self):
         while self._running:

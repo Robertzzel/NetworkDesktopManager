@@ -1,5 +1,4 @@
-import zmq
-import sys
+import zmq, sys
 from Tools.keyboard_tool import KeyboardTool, Key
 from Commons.input_actions import InputActions
 from threading import Thread
@@ -16,11 +15,17 @@ class InputGenerator:
         self._socket.connect(f"tcp://localhost:{port}")
 
     def start(self):
-        self._thread_keyboard = Thread(target=self._keyboard.listen_keyboard, args=(self.on_press, self.on_release,))
+        self._thread_keyboard = Thread(target=self._keyboard.listen_keyboard,
+                                       args=(self.on_press, self.on_release,), daemon=True)
         self._thread_keyboard.start()
 
-        self._thread_mouse = Thread(target=self._mouse.listen_for_clicks, args=(self._on_move, self._on_click))
+        self._thread_mouse = Thread(target=self._mouse.listen_for_clicks,
+                                    args=(self._on_move, self._on_click), daemon=True)
         self._thread_mouse.start()
+
+        while True:
+            if self._socket.recv() == b"1":
+                self.stop()
 
     def on_press(self, key):
         if type(key) != Key:
@@ -39,6 +44,9 @@ class InputGenerator:
 
     def _on_click(self, x, y, button, pressed):
         self._socket.send_string(f"{InputActions.CLICK.value}:{button},{pressed}")
+
+    def stop(self):
+        sys.exit(0)
 
 
 if __name__ == "__main__":

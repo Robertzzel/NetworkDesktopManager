@@ -40,7 +40,7 @@ class Server(Orchestrator):
         process_ports = [self._image_generator_port, self._sound_generator_port, self._input_executor_port]
 
         for file, port in zip(process_paths, process_ports):
-            self._process_pool.append(Popen([sys.executable, file, port]))
+            self._process_pool.append(Popen([sys.executable, file, str(port)]))
 
         self._connect()
 

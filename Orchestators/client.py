@@ -1,13 +1,6 @@
-import time
 import zmq, sys
 from pathlib import Path
-from Consumers.image_displayer import ImageDisplayer
-from Producers.input_generator import InputGenerator
-from Consumers.sound_player import SoundPlayer
 from Orchestators.orchestrator import Orchestrator
-from multiprocessing import Queue
-from threading import Lock
-from socket import socket, AF_INET, SOCK_STREAM
 from configurations import Configurations
 from Commons.thread_table import ThreadTable
 from subprocess import Popen
@@ -22,13 +15,13 @@ class Client(Orchestrator):
         self._process_pool: List[Popen] = []
 
         self._socket_image_server = context.socket(zmq.PAIR)
-        self._socket_image_server.bind(f"tcp://{image_address[0]}:{image_address[1]}")
+        self._socket_image_server.connect(f"tcp://{image_address[0]}:{image_address[1]}")
 
         self._socket_sound_server = context.socket(zmq.PAIR)
-        self._socket_sound_server.bind(f"tcp://{sound_address[0]}:{sound_address[1]}")
+        self._socket_sound_server.connect(f"tcp://{sound_address[0]}:{sound_address[1]}")
 
         self._socket_input_server = context.socket(zmq.PAIR)
-        self._socket_input_server.bind(f"tcp://{input_address[0]}:{input_address[1]}")
+        self._socket_input_server.connect(f"tcp://{input_address[0]}:{input_address[1]}")
 
         self._socket_image_displayer = context.socket(zmq.PAIR)
         self._image_displayer_port = self._socket_image_displayer.bind_to_random_port("tcp://*", min_port=6001, max_port=7004, max_tries=100)
@@ -47,7 +40,7 @@ class Client(Orchestrator):
         process_ports = [self._image_displayer_port, self._sound_player_port, self._input_generator_port]
 
         for file, port in zip(process_paths, process_ports):
-            self._process_pool.append(Popen([sys.executable, file, port]))
+            self._process_pool.append(Popen([sys.executable, file, str(port)]))
 
         self._connect()
 

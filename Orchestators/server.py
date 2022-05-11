@@ -29,7 +29,7 @@ class Server(Orchestrator):
         self._socket_sound_generator = context.socket(zmq.REQ)
         self._sound_generator_port = self._socket_sound_generator.bind_to_random_port("tcp://*", min_port=6001, max_port=7004, max_tries=100)
 
-        self._socket_input_executor = context.socket(zmq.REQ)
+        self._socket_input_executor = context.socket(zmq.PAIR)
         self._input_executor_port = self._socket_input_executor.bind_to_random_port("tcp://*", min_port=6001, max_port=7004, max_tries=100)
 
     def start(self):
@@ -40,14 +40,14 @@ class Server(Orchestrator):
         process_ports = [self._image_generator_port, self._sound_generator_port, self._input_executor_port]
 
         for file, port in zip(process_paths, process_ports):
-            self._process_pool.append(Popen([sys.executable, file, str(port)]))
+            self._process_pool.append(Popen([sys.executable, str(file), str(port)]))
 
         self._connect()
 
     def _connect(self):
         self._thread_pool.new_thread(target=self._handle_image_connection)
-        # self._thread_pool.new_thread(target=self._handle_input_connection)
-        # self._thread_pool.new_thread(target=self._handle_sound_connection)
+        self._thread_pool.new_thread(target=self._handle_input_connection)
+        self._thread_pool.new_thread(target=self._handle_sound_connection)
 
     def _handle_image_connection(self):
         while self._running:

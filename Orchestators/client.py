@@ -8,23 +8,23 @@ from typing import *
 
 
 class Client(Orchestrator):
-    def __init__(self, image_address, input_address, sound_address):
+    def __init__(self, image_address, input_address, sound_address, image_displayer_address):
         self._thread_pool = ThreadTable.get_threading_table()
         self._running = True
         context = zmq.Context()
         self._process_pool: List[Popen] = []
 
         self._socket_image_server = context.socket(zmq.PAIR)
-        self._socket_image_server.connect(f"tcp://{image_address[0]}:{image_address[1]}")
+        self._socket_image_server.connect(f"tcp://{image_address}")
 
         self._socket_sound_server = context.socket(zmq.PAIR)
-        self._socket_sound_server.connect(f"tcp://{sound_address[0]}:{sound_address[1]}")
+        self._socket_sound_server.connect(f"tcp://{sound_address}")
 
         self._socket_input_server = context.socket(zmq.PAIR)
-        self._socket_input_server.connect(f"tcp://{input_address[0]}:{input_address[1]}")
+        self._socket_input_server.connect(f"tcp://{input_address}")
 
         self._socket_image_displayer = context.socket(zmq.PAIR)
-        self._image_displayer_port = self._socket_image_displayer.bind_to_random_port("tcp://*", min_port=6001, max_port=7004, max_tries=100)
+        self._socket_image_displayer.connect(f"tcp://{image_displayer_address}")
 
         self._socket_sound_player = context.socket(zmq.PAIR)
         self._sound_player_port = self._socket_sound_player.bind_to_random_port("tcp://*", min_port=6001, max_port=7004, max_tries=100)
@@ -36,11 +36,11 @@ class Client(Orchestrator):
         Configurations.LOGGER.warning("CLIENT: Starting...")
 
         base_path = Path(__file__).parent.parent
-        process_paths = [base_path / "Consumers" / "image_displayer.py", base_path / "Consumers" / "sound_player.py", base_path / "Producers" / "input_generator.py"]
-        process_ports = [self._image_displayer_port, self._sound_player_port, self._input_generator_port]
+        process_paths = [base_path / "Consumers" / "sound_player.py", base_path / "Producers" / "input_generator.py"]
+        process_ports = [self._sound_player_port, self._input_generator_port]
 
         for file, port in zip(process_paths, process_ports):
-            self._process_pool.append(Popen([sys.executable, file, str(port)]))
+            self._process_pool.append(Popen([sys.executable, str(file), str(port)]))
 
         self._connect()
 
@@ -54,26 +54,34 @@ class Client(Orchestrator):
             encoded_image = self._socket_image_server.recv_pyobj()
             self._socket_image_displayer.send(b"0")
             self._socket_image_displayer.send_pyobj(encoded_image)
-        self._socket_image_displayer.send(b"1")
 
     def _connect_to_sound_server(self):
         while self._running:
             sound = self._socket_sound_server.recv_pyobj()
             self._socket_sound_player.send(b"0")
             self._socket_sound_player.send_pyobj(sound)
-        self._socket_sound_player.send(b"1")
 
     def _connect_to_input_server(self):
         while self._running:
             action = self._socket_input_generator.recv_string()
             self._socket_input_server.send_string(action)
-        self._socket_input_generator.send(b"1")
 
     def stop(self):
         if self._running:
             self._running = False
 
+            self._socket_image_displayer.send(b"1")
+            self._socket_sound_player.send(b"1")
+            self._socket_input_generator.send(b"1")
+
             for process in self._process_pool:
                 process.kill()
 
             self._thread_pool.join_all_threads(timeout=1)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) == 5:
+        Client(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]).start()
+    else:
+        print("Input problem")

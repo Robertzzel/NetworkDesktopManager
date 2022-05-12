@@ -15,13 +15,13 @@ class Server(Orchestrator):
         context = zmq.Context()
 
         self._socket_image_client = context.socket(zmq.PAIR)
-        self._socket_image_client.bind(f"tcp://{image_address[0]}:{image_address[1]}")
+        self._socket_image_client.bind(f"tcp://{image_address}")
 
         self._socket_sound_client = context.socket(zmq.PAIR)
-        self._socket_sound_client.bind(f"tcp://{sound_address[0]}:{sound_address[1]}")
+        self._socket_sound_client.bind(f"tcp://{sound_address}")
 
         self._socket_input_client = context.socket(zmq.PAIR)
-        self._socket_input_client.bind(f"tcp://{input_address[0]}:{input_address[1]}")
+        self._socket_input_client.bind(f"tcp://{input_address}")
 
         self._socket_image_generator = context.socket(zmq.REQ)
         self._image_generator_port = self._socket_image_generator.bind_to_random_port("tcp://*", min_port=6001, max_port=7004, max_tries=100)
@@ -77,4 +77,11 @@ class Server(Orchestrator):
             for process in self._process_pool:
                 process.kill()
             self._thread_pool.join_all_threads(timeout=1)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) == 4:
+        Server(sys.argv[1], sys.argv[2], sys.argv[3]).start()
+    else:
+        print("Input error")
 

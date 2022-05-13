@@ -1,4 +1,5 @@
 import asyncio
+import signal
 import sys
 from pathlib import Path
 from UI.ui import UI
@@ -18,7 +19,7 @@ class App(UI):
         self.create_widgets()
         self._socket = zmq.asyncio.Context().socket(zmq.PAIR)
         self._socket_port = self._socket.bind_to_random_port("tcp://*", min_port=6001, max_port=7004, max_tries=100)
-        self._orchestrator_process: Process = None
+        self._orchestrator_process: Popen = None
 
     def create_widgets(self):
         self.btn_connect = self._create_button(text="Connect", command=self.start_connecting, x_position=20, y_position=20)
@@ -46,7 +47,8 @@ class App(UI):
                                             f"{Configurations.SERVER_IP}:{self._socket_port}"])
 
     def disconnect(self):
-        self._orchestrator_process.kill()
+        self._orchestrator_process.send_signal(signal.SIGINT)
+        self._orchestrator_process.wait(timeout=3)
 
     async def update_screen(self):
         while True:

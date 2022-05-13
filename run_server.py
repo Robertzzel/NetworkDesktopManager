@@ -3,9 +3,9 @@ from Orchestators.server import Server
 from configurations import Configurations
 import signal
 
-ADDRESS = (Configurations.SERVER_IP, 5101)
-ADDRESS_INPUT = (Configurations.SERVER_IP, 5102)
-ADDRESS_SOUND = (Configurations.SERVER_IP, 5103)
+ADDRESS = f"{Configurations.SERVER_IP}:5101"
+ADDRESS_INPUT = f"{Configurations.SERVER_IP}:5102"
+ADDRESS_SOUND = f"{Configurations.SERVER_IP}:5103"
 
 
 def received_signal(signal, frame):

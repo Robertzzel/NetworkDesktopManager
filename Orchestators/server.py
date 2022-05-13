@@ -45,25 +45,25 @@ class Server(Orchestrator):
         self._connect()
 
     def _connect(self):
-        self._thread_pool.new_thread(target=self._handle_image_connection)
-        self._thread_pool.new_thread(target=self._handle_input_connection)
-        self._thread_pool.new_thread(target=self._handle_sound_connection)
+        self._thread_pool.new_thread(target=self._generate_and_send_screen)
+        self._thread_pool.new_thread(target=self._receive_and_execute_inputs)
+        self._thread_pool.new_thread(target=self._record_and_send_sounds)
 
-    def _handle_image_connection(self):
+    def _generate_and_send_screen(self):
         while self._running:
             self._socket_image_generator.send(b"0")
             img = self._socket_image_generator.recv_pyobj()
             self._socket_image_client.send_pyobj(img)
         self._socket_image_generator.send(b"1")
 
-    def _handle_sound_connection(self, ):
+    def _record_and_send_sounds(self, ):
         while self._running:
             self._socket_sound_generator.send(b"0")
             sound = self._socket_sound_generator.recv_pyobj()
             self._socket_sound_client.send_pyobj(sound)
         self._socket_sound_generator.send(b"1")
 
-    def _handle_input_connection(self):
+    def _receive_and_execute_inputs(self):
         while self._running:
             action = self._socket_input_client.recv_string()
             self._socket_input_executor.send(b"0")
@@ -80,8 +80,15 @@ class Server(Orchestrator):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 4:
-        Server(sys.argv[1], sys.argv[2], sys.argv[3]).start()
-    else:
-        print("Input error")
+    server = None
+    try:
+        if len(sys.argv) == 4:
+            server = Server(sys.argv[1], sys.argv[2], sys.argv[3])
+            server.start()
+        else:
+            print("Input error")
+    except:
+        print("Mesaj de intrerupere")
+        server.stop()
+
 

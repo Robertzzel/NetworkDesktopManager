@@ -8,7 +8,6 @@ class ThreadTable:
 
     def __init__(self):
         self._threads = {}
-        print("Init thread table")
 
     @staticmethod
     def get_threading_table():
@@ -20,7 +19,6 @@ class ThreadTable:
         new_thread = Thread(target=target, args=args if args is not None else (), daemon=daemon)
         new_thread.start()
         self._threads[new_thread.ident] = new_thread
-        print(f"Started new thread: {new_thread.ident}")
         return new_thread
 
     def join_thread(self, ident: int, timeout: int):

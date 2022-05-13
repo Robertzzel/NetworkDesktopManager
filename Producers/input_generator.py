@@ -15,17 +15,20 @@ class InputGenerator:
         self._socket.connect(f"tcp://localhost:{port}")
 
     def start(self):
-        self._thread_keyboard = Thread(target=self._keyboard.listen_keyboard,
-                                       args=(self.on_press, self.on_release,), daemon=True)
-        self._thread_keyboard.start()
+        try:
+            self._thread_keyboard = Thread(target=self._keyboard.listen_keyboard,
+                                           args=(self.on_press, self.on_release,), daemon=True)
+            self._thread_keyboard.start()
 
-        self._thread_mouse = Thread(target=self._mouse.listen_for_clicks,
-                                    args=(self._on_move, self._on_click), daemon=True)
-        self._thread_mouse.start()
+            self._thread_mouse = Thread(target=self._mouse.listen_for_clicks,
+                                        args=(self._on_move, self._on_click), daemon=True)
+            self._thread_mouse.start()
 
-        while True:
-            if self._socket.recv() == b"1":
-                self.stop()
+            while True:
+                if self._socket.recv() == b"1":
+                    self.stop()
+        except:
+            print("Gata generatorul")
 
     def on_press(self, key):
         if type(key) != Key:

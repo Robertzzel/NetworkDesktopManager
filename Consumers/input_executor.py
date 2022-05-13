@@ -18,15 +18,18 @@ class InputExecutor:
         }
 
     def start(self):
-        while True:
-            action = self._socket.recv()
-            if action == b"0":
-                data = self._socket.recv_string()
-                self.execute_input(data)
-            elif action == b"1":
-                self._socket.close()
-                break
-        print("Terminat")
+        try:
+            while True:
+                action = self._socket.recv()
+                if action == b"0":
+                    data = self._socket.recv_string()
+                    self.execute_input(data)
+                elif action == b"1":
+                    self._socket.close()
+                    break
+            print("Terminat")
+        except:
+            print("Terminat")
 
     def execute_input(self, data):
         action, details = data.split(":")

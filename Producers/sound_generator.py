@@ -11,16 +11,19 @@ class SoundGenerator:
         self._socket.connect(f"tcp://localhost:{port}")
 
     def start(self):
-        while True:
-            action = self._socket.recv()
-            if action == b"0":
-                rec = sd.rec(Configurations.SOUND_RECORD_SECONDS * Configurations.SOUND_FRAMES,
-                             samplerate=Configurations.SOUND_FRAMES,
-                             channels=Configurations.SOUND_CHANNELS, blocking=True)
-                self._socket.send_pyobj(rec)
-            elif action == b"1":
-                break
-        print("Generator inchis")
+        try:
+            while True:
+                action = self._socket.recv()
+                if action == b"0":
+                    rec = sd.rec(Configurations.SOUND_RECORD_SECONDS * Configurations.SOUND_FRAMES,
+                                 samplerate=Configurations.SOUND_FRAMES,
+                                 channels=Configurations.SOUND_CHANNELS, blocking=True)
+                    self._socket.send_pyobj(rec)
+                elif action == b"1":
+                    break
+            print("Generator inchis")
+        except:
+            print("Generator inchis")
 
     def _get_device_index(self):
         for index, dev in enumerate(sd.query_devices()):

@@ -45,6 +45,7 @@ class App(UI):
                                             f"{Configurations.SERVER_IP}:5102",
                                             f"{Configurations.SERVER_IP}:5103",
                                             f"{Configurations.SERVER_IP}:{self._socket_port}"])
+        asyncio.run(self.update_screen())
 
     def disconnect(self):
         self._orchestrator_process.send_signal(signal.SIGINT)
@@ -54,9 +55,7 @@ class App(UI):
         while True:
             action = await self._socket.recv()
             if action == b"0":
-                ss = await self._socket.recv_pyobj()
-                ss = cv2.cvtColor(ss, cv2.COLOR_BGR2RGB)
-                img_tk = ImageTk.PhotoImage(image=Image.fromarray(ss))
+                img_tk = ImageTk.PhotoImage(image=Image.fromarray(cv2.cvtColor(await self._socket.recv_pyobj(), cv2.COLOR_BGR2RGB)))
                 self.label_image.configure(image=img_tk)
                 self._window.mainloop()
             elif action == b"1":

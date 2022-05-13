@@ -17,13 +17,9 @@ if __name__ == "__main__":
     except:
         receiver_process.send_signal(signal.SIGINT)
         sender_process.send_signal(signal.SIGINT)
-        time.sleep(3)
-        receiver_process.kill()
-        sender_process.kill()
+        input("se inchid?")
     else:
         receiver_process.send_signal(signal.SIGINT)
         sender_process.send_signal(signal.SIGINT)
-        time.sleep(3)
-        receiver_process.kill()
-        sender_process.kill()
+        input("se inchid?")
 

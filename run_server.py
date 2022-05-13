@@ -1,7 +1,7 @@
 import time
 from Orchestators.server import Server
 from configurations import Configurations
-import signal
+import signal, asyncio
 
 ADDRESS = f"{Configurations.SERVER_IP}:5101"
 ADDRESS_INPUT = f"{Configurations.SERVER_IP}:5102"
@@ -16,5 +16,5 @@ def received_signal(signal, frame):
 if __name__ == "__main__":
     sr = Server(ADDRESS, ADDRESS_INPUT, ADDRESS_SOUND)
     signal.signal(signalnum=signal.SIGINT, handler=received_signal)
-    sr.start()
+    asyncio.run(sr.start())
 

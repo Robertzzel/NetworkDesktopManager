@@ -14,10 +14,10 @@ class Server(Orchestrator):
         self._running = True
         context = zmq.Context()
 
-        self._socket_image_client = context.socket(zmq.PAIR)
+        self._socket_image_client = context.socket(zmq.REP)
         self._socket_image_client.bind(f"tcp://{image_address}")
 
-        self._socket_sound_client = context.socket(zmq.PAIR)
+        self._socket_sound_client = context.socket(zmq.REP)
         self._socket_sound_client.bind(f"tcp://{sound_address}")
 
         self._socket_input_client = context.socket(zmq.PAIR)
@@ -46,22 +46,36 @@ class Server(Orchestrator):
 
     def _connect(self):
         self._thread_pool.new_thread(target=self._generate_and_send_screen)
-        self._thread_pool.new_thread(target=self._receive_and_execute_inputs)
+        # self._thread_pool.new_thread(target=self._receive_and_execute_inputs)
         self._thread_pool.new_thread(target=self._record_and_send_sounds)
 
     def _generate_and_send_screen(self):
         while self._running:
             self._socket_image_generator.send(b"0")
             img = self._socket_image_generator.recv_pyobj()
-            self._socket_image_client.send_pyobj(img)
-        self._socket_image_generator.send(b"1")
 
-    def _record_and_send_sounds(self, ):
+            action = self._socket_image_client.recv()
+            if action == b"1":
+                break
+
+            self._socket_image_client.send_pyobj(img)
+
+        self._socket_image_generator.send(b"1", zmq.NOBLOCK)
+        self._socket_image_client.send(b"1", zmq.NOBLOCK)
+
+    def _record_and_send_sounds(self):
         while self._running:
             self._socket_sound_generator.send(b"0")
             sound = self._socket_sound_generator.recv_pyobj()
+
+            action = self._socket_sound_client.recv()
+            if action == b"1":
+                break
+
             self._socket_sound_client.send_pyobj(sound)
+
         self._socket_sound_generator.send(b"1")
+        self._socket_sound_client.send(b"1")
 
     def _receive_and_execute_inputs(self):
         while self._running:

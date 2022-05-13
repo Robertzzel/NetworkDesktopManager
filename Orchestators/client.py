@@ -15,20 +15,19 @@ class Client(Orchestrator):
         self._process_pool: List[Popen] = []
         self._image_displayer_address = image_displayer_address
 
-        self._socket_image_server = context.socket(zmq.PAIR)
+        self._socket_image_server = context.socket(zmq.REQ)
         self._socket_image_server.connect(f"tcp://{image_address}")
 
-        self._socket_sound_server = context.socket(zmq.PAIR)
+        self._socket_sound_server = context.socket(zmq.REQ)
         self._socket_sound_server.connect(f"tcp://{sound_address}")
 
         self._socket_input_server = context.socket(zmq.PAIR)
         self._socket_input_server.connect(f"tcp://{input_address}")
 
+        self._socket_image_displayer = context.socket(zmq.PAIR)
         if image_displayer_address is None:
-            self._socket_image_displayer = context.socket(zmq.PAIR)
             self._image_displayer_port = self._socket_image_displayer.bind_to_random_port("tcp://*", min_port=6001, max_port=7004, max_tries=100)
         else:
-            self._socket_image_displayer = context.socket(zmq.PAIR)
             self._socket_image_displayer.connect(f"tcp://{image_displayer_address}")
 
         self._socket_sound_player = context.socket(zmq.PAIR)
@@ -55,18 +54,29 @@ class Client(Orchestrator):
 
     def _connect(self):
         self._thread_pool.new_thread(target=self._connect_to_image_server)
-        self._thread_pool.new_thread(target=self._connect_to_input_server)
+        # self._thread_pool.new_thread(target=self._connect_to_input_server)
         self._thread_pool.new_thread(target=self._connect_to_sound_server)
 
     def _connect_to_image_server(self):
         while self._running:
+            self._socket_image_server.send(b"0")
             encoded_image = self._socket_image_server.recv_pyobj()
+            if encoded_image == b"1":
+                break
             self._socket_image_displayer.send(b"0")
             self._socket_image_displayer.send_pyobj(encoded_image)
 
+        self._socket_image_server.send(b"1", zmq.NOBLOCK)
+        self._socket_image_displayer.send(b"1", zmq.NOBLOCK)
+
     def _connect_to_sound_server(self):
         while self._running:
+            self._socket_sound_server.send(b"0")
             sound = self._socket_sound_server.recv_pyobj()
+
+            if sound == b"1":
+                break
+
             self._socket_sound_player.send(b"0")
             self._socket_sound_player.send_pyobj(sound)
 

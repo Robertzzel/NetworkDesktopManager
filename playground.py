@@ -1,23 +1,30 @@
-import zmq.asyncio
-import asyncio
-from random import randint
+# Import required Libraries
+from tkinter import *
+from PIL import Image, ImageTk
+import cv2
 
-async def consumer(q):
-    while True:
-        print(await q.get())
-        q.task_done()
+# Create an instance of TKinter Window or frame
+win= Tk()
 
-async def producer(q):
-    while True:
-        await q.put(randint(0, 10))
-        await asyncio.sleep(1)
+# Set the size of the window
+win.geometry("700x350")# Create a Label to capture the Video frames
+label =Label(win)
+label.grid(row=0, column=0)
+cap= cv2.VideoCapture(0)
 
-async def main():
-    q = asyncio.Queue(2)
-    t1 = asyncio.create_task(producer(q))
-    t2 = asyncio.create_task(consumer(q))
-    await t1
-    await t2
+# Define function to show frame
+def show_frames():
+  # Get the latest frame and convert into Image
+  cv2image= cv2.cvtColor(cap.read()[1],cv2.COLOR_BGR2RGB)
+  img = Image.fromarray(cv2image)
 
-if __name__ == "__main__":
-    asyncio.run(main(), debug=True)
+  # Convert image to PhotoImage
+  imgtk = ImageTk.PhotoImage(image = img)
+  label.imgtk = imgtk
+  label.configure(image=imgtk)
+
+# Repeat after an interval to capture continiously
+label.after(20, show_frames)
+
+show_frames()
+win.mainloop()

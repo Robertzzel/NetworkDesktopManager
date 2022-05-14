@@ -67,18 +67,18 @@ class Client(Orchestrator):
             self._socket_image_server.send(b"0")
             encoded_image = await self.receive_object(self._socket_image_server)
             if encoded_image is None:
+                self._socket_image_displayer.send(b"1", zmq.NOBLOCK)
                 break
 
             self._socket_image_displayer.send(b"0")
             self._socket_image_displayer.send_pyobj(encoded_image)
-
-        self._socket_image_displayer.send(b"1", zmq.NOBLOCK)
 
     async def _connect_to_sound_server(self):
         while self._running:
             self._socket_sound_server.send(b"0")
             sound = await self.receive_object(self._socket_sound_server)
             if sound is None:
+                self._socket_sound_player.send(b"1")
                 break
 
             self._socket_sound_player.send(b"0")
@@ -88,6 +88,7 @@ class Client(Orchestrator):
         while self._running:
             action = await self.receive_string(self._socket_input_generator)
             if action is None:
+                self._socket_input_server.send(b"1")
                 break
 
             self._socket_input_server.send(b"0")

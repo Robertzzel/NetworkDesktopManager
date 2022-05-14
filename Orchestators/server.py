@@ -58,23 +58,20 @@ class Server(Orchestrator):
         while self._running:
             self._socket_image_generator.send(b"0")
             img = await self.receive_object(self._socket_image_generator)
-            if img is None:
-                break
 
             action = await self.receive(self._socket_image_client)
-            if action is None:
+            if action is None or img is None:
                 break
+
             self._socket_image_client.send_pyobj(img)
 
     async def _record_and_send_sounds(self):
         while self._running:
             self._socket_sound_generator.send(b"0")
             sound = await self.receive_object(self._socket_sound_generator)
-            if sound is None:
-                break
 
             action = await self.receive(self._socket_sound_client)
-            if action is None:
+            if sound is None or action is None:
                 break
 
             self._socket_sound_client.send_pyobj(sound)
@@ -82,12 +79,12 @@ class Server(Orchestrator):
     async def _receive_and_execute_inputs(self):
         while self._running:
             action = await self.receive_string(self._socket_input_client)
-            if action is None:
+            if action is None or action == b"1":
+                self._socket_input_executor.send(b"1", zmq.NOBLOCK)
                 break
+
             self._socket_input_executor.send(b"0")
             self._socket_input_executor.send_string(action)
-
-        self._socket_input_executor.send(b"1", zmq.NOBLOCK)
 
     def stop(self):
         if self._running:

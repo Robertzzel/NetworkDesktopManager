@@ -1,30 +1,73 @@
-# Import required Libraries
-from tkinter import *
-from PIL import Image, ImageTk
-import cv2
+#
+#   Request-reply client in Python
+#   Connects REQ socket to tcp://localhost:5559
+#   Sends "Hello" to server, expects "World" back
+#
+import zmq
 
-# Create an instance of TKinter Window or frame
-win= Tk()
+#  Prepare our context and sockets
+context = zmq.Context()
+socket1 = context.socket(zmq.REQ)
+socket1.connect("tcp://localhost:5559")
 
-# Set the size of the window
-win.geometry("700x350")# Create a Label to capture the Video frames
-label =Label(win)
-label.grid(row=0, column=0)
-cap= cv2.VideoCapture(0)
+socket2 = context.socket(zmq.REP)
+socket2.connect("tcp://localhost:5560")
 
-# Define function to show frame
-def show_frames():
-  # Get the latest frame and convert into Image
-  cv2image= cv2.cvtColor(cap.read()[1],cv2.COLOR_BGR2RGB)
-  img = Image.fromarray(cv2image)
+socket3 = context.socket(zmq.REP)
+socket3.connect("tcp://localhost:5560")
 
-  # Convert image to PhotoImage
-  imgtk = ImageTk.PhotoImage(image = img)
-  label.imgtk = imgtk
-  label.configure(image=imgtk)
+frontend = context.socket(zmq.ROUTER)
+backend = context.socket(zmq.DEALER)
+frontend.bind("tcp://*:5559")
+backend.bind("tcp://*:5560")
 
-# Repeat after an interval to capture continiously
-label.after(20, show_frames)
+# Initialize poll set
+poller = zmq.Poller()
+poller.register(frontend, zmq.POLLIN)
+poller.register(backend, zmq.POLLIN)
 
-show_frames()
-win.mainloop()
+def start_socket1():
+    #  Do 10 requests, waiting each time for a response
+    for request in range(1, 11):
+        socket1.send(b"Hello")
+        message = socket1.recv()
+        print(f"Received reply {request} [{message}]")
+
+def start_socket2():
+    while True:
+        message = socket2.recv()
+        print(f"Received request: {message}")
+        socket2.send(b"World")
+
+def start_socket2_2():
+    while True:
+        message = socket2.recv()
+        print(f"Received request: {message}")
+        socket2.send(b"NoWorld")
+
+
+def start_broker():
+    while True:
+        socks = dict(poller.poll())
+
+        if socks.get(frontend) == zmq.POLLIN:
+            message = frontend.recv_multipart()
+            backend.send_multipart(message)
+
+        if socks.get(backend) == zmq.POLLIN:
+            message = backend.recv_multipart()
+            frontend.send_multipart(message)
+
+from threading import Thread
+Thread(target=start_broker).start()
+Thread(target=start_socket1).start()
+Thread(target=start_socket2).start()
+#Thread(target=start_socket2_2).start()
+
+
+
+
+
+
+
+

@@ -1,3 +1,5 @@
+import signal
+
 from Orchestators.orchestrator import Orchestrator
 from configurations import Configurations
 import zmq.asyncio, sys
@@ -11,29 +13,29 @@ class Server(Orchestrator):
     def __init__(self, image_address, input_address, sound_address):
         self._process_pool: List[Popen] = []
         self._running = True
-        context = zmq.asyncio.Context()
+        self._context = zmq.asyncio.Context()
 
-        self._socket_image_client = context.socket(zmq.REP)
+        self._socket_image_client = self._context.socket(zmq.REP)
         self._socket_image_client.bind(f"tcp://{image_address}")
         self._socket_image_client.RCVTIMEO = 10000
 
-        self._socket_sound_client = context.socket(zmq.REP)
+        self._socket_sound_client = self._context.socket(zmq.REP)
         self._socket_sound_client.bind(f"tcp://{sound_address}")
         self._socket_sound_client.RCVTIMEO = 10000
 
-        self._socket_input_client = context.socket(zmq.PAIR)
+        self._socket_input_client = self._context.socket(zmq.PAIR)
         self._socket_input_client.bind(f"tcp://{input_address}")
         self._socket_input_client.RCVTIMEO = 10000
 
-        self._socket_image_generator = context.socket(zmq.REQ)
+        self._socket_image_generator = self._context.socket(zmq.REQ)
         self._image_generator_port = self._socket_image_generator.bind_to_random_port("tcp://*", min_port=6001, max_port=7004, max_tries=100)
         self._socket_image_generator.RCVTIMEO = 10000
 
-        self._socket_sound_generator = context.socket(zmq.REQ)
+        self._socket_sound_generator = self._context.socket(zmq.REQ)
         self._sound_generator_port = self._socket_sound_generator.bind_to_random_port("tcp://*", min_port=6001, max_port=7004, max_tries=100)
         self._socket_sound_generator.RCVTIMEO = 10000
 
-        self._socket_input_executor = context.socket(zmq.PAIR)
+        self._socket_input_executor = self._context.socket(zmq.PAIR)
         self._input_executor_port = self._socket_input_executor.bind_to_random_port("tcp://*", min_port=6001, max_port=7004, max_tries=100)
         self._socket_input_executor.RCVTIMEO = 10000
 
@@ -91,7 +93,9 @@ class Server(Orchestrator):
             Configurations.LOGGER.warning("SERVER: Stopping...")
             self._running = False
             for process in self._process_pool:
-                process.kill()
+                process.send_signal(signal.SIGINT)
+
+            self._context.destroy(linger=0)
 
 
 if __name__ == "__main__":

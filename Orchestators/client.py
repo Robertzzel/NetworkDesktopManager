@@ -1,4 +1,6 @@
 import asyncio
+import signal
+
 import zmq.asyncio, sys
 from pathlib import Path
 from Orchestators.orchestrator import Orchestrator
@@ -10,34 +12,31 @@ from typing import *
 class Client(Orchestrator):
     def __init__(self, image_address, input_address, sound_address, image_displayer_address=None):
         self._running = True
-        context = zmq.asyncio.Context()
+        self._context = zmq.asyncio.Context()
         self._process_pool: List[Popen] = []
         self._image_displayer_address = image_displayer_address
 
-        self._socket_image_server = context.socket(zmq.REQ)
+        self._socket_image_server = self._context.socket(zmq.REQ)
         self._socket_image_server.connect(f"tcp://{image_address}")
         self._socket_image_server.RCVTIMEO = 3000
 
-        self._socket_sound_server = context.socket(zmq.REQ)
+        self._socket_sound_server = self._context.socket(zmq.REQ)
         self._socket_sound_server.connect(f"tcp://{sound_address}")
         self._socket_sound_server.RCVTIMEO = 5000
 
-        self._socket_input_server = context.socket(zmq.PAIR)
+        self._socket_input_server = self._context.socket(zmq.PAIR)
         self._socket_input_server.connect(f"tcp://{input_address}")
         self._socket_input_server.RCVTIMEO = 1000
 
-        self._socket_image_displayer = context.socket(zmq.PAIR)
-        if image_displayer_address is None:
-            self._image_displayer_port = self._socket_image_displayer.bind_to_random_port("tcp://*", min_port=6001, max_port=7004, max_tries=100)
-        else:
-            self._socket_image_displayer.connect(f"tcp://{image_displayer_address}")
+        self._socket_image_displayer = self._context.socket(zmq.PAIR)
+        self._socket_image_displayer.connect(f"tcp://{image_displayer_address}")
         self._socket_image_displayer.RCVTIMEO = 1000
 
-        self._socket_sound_player = context.socket(zmq.PAIR)
+        self._socket_sound_player = self._context.socket(zmq.PAIR)
         self._sound_player_port = self._socket_sound_player.bind_to_random_port("tcp://*", min_port=6001, max_port=7004, max_tries=100)
         self._socket_sound_player.RCVTIMEO = 1000
 
-        self._socket_input_generator = context.socket(zmq.PAIR)
+        self._socket_input_generator = self._context.socket(zmq.PAIR)
         self._input_generator_port = self._socket_input_generator.bind_to_random_port("tcp://*", min_port=6001, max_port=7004, max_tries=100)
         self._socket_input_generator.RCVTIMEO = 1000
 
@@ -98,7 +97,8 @@ class Client(Orchestrator):
         if self._running:
             self._running = False
             for process in self._process_pool:
-                process.kill()
+                process.send_signal(signal.SIGINT)
+            self._context.destroy(linger=0)
 
 
 if __name__ == "__main__":

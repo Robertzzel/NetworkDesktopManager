@@ -72,14 +72,15 @@ class App(UI):
         self.btn_disconnect["state"] = tkinter.DISABLED
 
     def update_screen(self):
-        while True:
-            action = self._socket.recv()
-            if action == b"0":
-                img = ImageTk.PhotoImage(image=Image.fromarray(cv2.cvtColor(ImageOperations.decode(self._socket.recv_pyobj()), cv2.COLOR_BGR2RGB)))
-                self._canvas.create_image(20, 20, anchor=tkinter.NW, image=img)
-            elif action == b"1":
-                self.disconnect()
-                break
+        action = self._socket.recv()
+        if action == b"0":
+            img = ImageTk.PhotoImage(image=Image.fromarray(cv2.cvtColor(ImageOperations.decode(self._socket.recv_pyobj()), cv2.COLOR_BGR2RGB)))
+            self._canvas.create_image(20, 20, anchor=tkinter.NW, image=img)
+        elif action == b"1":
+            self.disconnect()
+            return
+
+        self._window.after(10, self.update_screen())
 
 
 if __name__ == "__main__":

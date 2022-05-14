@@ -1,73 +1,41 @@
-#
-#   Request-reply client in Python
-#   Connects REQ socket to tcp://localhost:5559
-#   Sends "Hello" to server, expects "World" back
-#
-import zmq
+import asyncio
+import os
+import zmq.asyncio
+import zmq.sugar
 
-#  Prepare our context and sockets
-context = zmq.Context()
-socket1 = context.socket(zmq.REQ)
-socket1.connect("tcp://localhost:5559")
 
-socket2 = context.socket(zmq.REP)
-socket2.connect("tcp://localhost:5560")
-
-socket3 = context.socket(zmq.REP)
-socket3.connect("tcp://localhost:5560")
-
-frontend = context.socket(zmq.ROUTER)
-backend = context.socket(zmq.DEALER)
-frontend.bind("tcp://*:5559")
-backend.bind("tcp://*:5560")
-
-# Initialize poll set
-poller = zmq.Poller()
-poller.register(frontend, zmq.POLLIN)
-poller.register(backend, zmq.POLLIN)
-
-def start_socket1():
-    #  Do 10 requests, waiting each time for a response
-    for request in range(1, 11):
-        socket1.send(b"Hello")
-        message = socket1.recv()
-        print(f"Received reply {request} [{message}]")
-
-def start_socket2():
+async def push_hello(sock: zmq.sugar.Socket):
     while True:
-        message = socket2.recv()
-        print(f"Received request: {message}")
-        socket2.send(b"World")
+        print("Creez")
+        sock.send_string("Hello")
+        await asyncio.sleep(1)
 
-def start_socket2_2():
+
+async def push_welcome(sock: zmq.sugar.Socket):
     while True:
-        message = socket2.recv()
-        print(f"Received request: {message}")
-        socket2.send(b"NoWorld")
+        sock.send_string("wellcome")
+        await asyncio.sleep(1)
 
 
-def start_broker():
+async def main():
+    context = zmq.asyncio.Context()
+    poller = zmq.asyncio.Poller()
+
+    s0, s1, s2 = context.socket(zmq.PULL), context.socket(zmq.PUSH), context.socket(zmq.PUSH)
+    s0.bind("ipc:///tmp/proiectz_mq/0")
+    s1.connect("ipc:///tmp/proiectz_mq/0")
+    s2.connect("ipc:///tmp/proiectz_mq/0")
+
+    poller.register(s0, zmq.POLLIN)
+
+    task = asyncio.gather(push_welcome(s1), push_hello(s2))
+
     while True:
-        socks = dict(poller.poll())
+        p = dict(await poller.poll())
+        if s0 in p:
+            print(await s0.recv())
 
-        if socks.get(frontend) == zmq.POLLIN:
-            message = frontend.recv_multipart()
-            backend.send_multipart(message)
+    await task
 
-        if socks.get(backend) == zmq.POLLIN:
-            message = backend.recv_multipart()
-            frontend.send_multipart(message)
-
-from threading import Thread
-Thread(target=start_broker).start()
-Thread(target=start_socket1).start()
-Thread(target=start_socket2).start()
-#Thread(target=start_socket2_2).start()
-
-
-
-
-
-
-
-
+if __name__ == "__main__":
+    asyncio.run(main())

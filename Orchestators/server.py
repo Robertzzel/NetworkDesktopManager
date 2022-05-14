@@ -1,8 +1,8 @@
 import signal
-
 from Orchestators.orchestrator import Orchestrator
 from configurations import Configurations
 import zmq.asyncio, sys
+import zmq.sugar
 from subprocess import Popen
 from pathlib import Path
 from typing import *
@@ -15,78 +15,55 @@ class Server(Orchestrator):
         self._running = True
         self._context = zmq.asyncio.Context()
 
-        self._socket_image_client = self._context.socket(zmq.REP)
+        self._socket_image_client: zmq.sugar.Socket = self._context.socket(zmq.PUSH)
         self._socket_image_client.bind(f"tcp://{image_address}")
-        self._socket_image_client.RCVTIMEO = 10000
+        #self._socket_image_client.RCVTIMEO = 10000
 
-        self._socket_sound_client = self._context.socket(zmq.REP)
+        self._socket_sound_client: zmq.sugar.Socket = self._context.socket(zmq.PUSH)
         self._socket_sound_client.bind(f"tcp://{sound_address}")
-        self._socket_sound_client.RCVTIMEO = 10000
+        #self._socket_sound_client.RCVTIMEO = 10000
 
-        self._socket_input_client = self._context.socket(zmq.PAIR)
+        self._socket_input_client: zmq.sugar.Socket = self._context.socket(zmq.PULL)
         self._socket_input_client.bind(f"tcp://{input_address}")
-        self._socket_input_client.RCVTIMEO = 10000
+        #self._socket_input_client.RCVTIMEO = 10000
 
-        self._socket_image_generator = self._context.socket(zmq.REQ)
-        self._image_generator_port = self._socket_image_generator.bind_to_random_port("tcp://*", min_port=6001, max_port=7004, max_tries=100)
-        self._socket_image_generator.RCVTIMEO = 10000
+        self.create_file(Configurations.SERVER_GENERATORS_FILE_LINUX)
+        self._socket_img_snd: zmq.sugar.Socket = self._context.socket(zmq.PULL)
+        self._socket_img_snd.bind(f"ipc://{Configurations.SERVER_GENERATORS_FILE_LINUX}")
+        self._socket_img_snd.RCVTIMEO = 10000
 
-        self._socket_sound_generator = self._context.socket(zmq.REQ)
-        self._sound_generator_port = self._socket_sound_generator.bind_to_random_port("tcp://*", min_port=6001, max_port=7004, max_tries=100)
-        self._socket_sound_generator.RCVTIMEO = 10000
-
-        self._socket_input_executor = self._context.socket(zmq.PAIR)
-        self._input_executor_port = self._socket_input_executor.bind_to_random_port("tcp://*", min_port=6001, max_port=7004, max_tries=100)
-        self._socket_input_executor.RCVTIMEO = 10000
+        self.create_file(Configurations.SERVER_EXECUTOR_FILE_LINUX)
+        self._socket_input: zmq.sugar.Socket = self._context.socket(zmq.PUSH)
+        self._socket_input.bind(f"ipc://{Configurations.SERVER_EXECUTOR_FILE_LINUX}")
+        self._socket_input.RCVTIMEO = 10000
 
     async def start(self):
         Configurations.LOGGER.warning("SERVER: Starting...")
 
         base_path = Path(__file__).parent.parent
         process_paths = [base_path / "Producers" / "image_generator.py", base_path / "Producers" / "sound_generator.py", base_path / "Consumers" / "input_executor.py"]
-        process_ports = [self._image_generator_port, self._sound_generator_port, self._input_executor_port]
 
-        for file, port in zip(process_paths, process_ports):
-            self._process_pool.append(Popen([sys.executable, str(file), str(port)]))
+        for file in process_paths:
+            self._process_pool.append(Popen([sys.executable, str(file)]))
 
         await asyncio.gather(
-            self._generate_and_send_screen(),
-            # self._record_and_send_sounds(),
-            # self._receive_and_execute_inputs()
+            self._manage_sounds_images(),
+            self._manage_inputs()
         )
-        print("GATA SV")
 
-    async def _generate_and_send_screen(self):
+    async def _manage_sounds_images(self):
         while self._running:
-            self._socket_image_generator.send(b"0")
-            img = await self.receive_object(self._socket_image_generator)
+            img_or_sound = await self._socket_img_snd.recv_pyobj()
+            if img_or_sound[0] == 0:
+                self._socket_image_client.send_pyobj(img_or_sound[1])
+            elif img_or_sound[0] == 1:
+                self._socket_sound_client.send_pyobj(img_or_sound[1])
+                print("Trimis sunet")
 
-            action = await self.receive(self._socket_image_client)
-            if action is None or img is None:
-                break
-
-            self._socket_image_client.send_pyobj(img)
-
-    async def _record_and_send_sounds(self):
+    async def _manage_inputs(self):
         while self._running:
-            self._socket_sound_generator.send(b"0")
-            sound = await self.receive_object(self._socket_sound_generator)
-
-            action = await self.receive(self._socket_sound_client)
-            if sound is None or action is None:
-                break
-
-            self._socket_sound_client.send_pyobj(sound)
-
-    async def _receive_and_execute_inputs(self):
-        while self._running:
-            action = await self.receive_string(self._socket_input_client)
-            if action is None or action == b"1":
-                self._socket_input_executor.send(b"1", zmq.NOBLOCK)
-                break
-
-            self._socket_input_executor.send(b"0")
-            self._socket_input_executor.send_string(action)
+            action = await self._socket_input_client.recv_string()
+            self._socket_input.send(action)
 
     def stop(self):
         if self._running:

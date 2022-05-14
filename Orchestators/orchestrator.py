@@ -1,5 +1,6 @@
 from zmq.sugar import Socket
 
+
 class Orchestrator:
     async def receive_object(self, sock: Socket):
         try:
@@ -18,3 +19,12 @@ class Orchestrator:
             return await sock.recv_string()
         except Exception as ex:
             return None
+
+    @staticmethod
+    def create_file(filepath):
+        import os
+
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        if not os.path.exists(filepath):
+            with open(filepath, 'w'):
+                pass

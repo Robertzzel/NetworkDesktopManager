@@ -1,13 +1,17 @@
 from Tools.mouse_tool import MouseTool
 from Tools.keyboard_tool import KeyboardTool
 from Commons.input_actions import InputActions
+from configurations import Configurations
 import zmq, sys
+import zmq.sugar
 
 
 class InputExecutor:
-    def __init__(self, port):
-        self._socket = zmq.Context().socket(zmq.PAIR)
-        self._socket.connect(f"tcp://localhost:{port}")
+    def __init__(self):
+        self._context = zmq.Context()
+        self._socket: zmq.sugar.Socket = self._context.socket(zmq.PULL)
+        self._socket.connect(f"ipc://{Configurations.SERVER_EXECUTOR_FILE_LINUX}")
+
         self._mouse = MouseTool()
         self._keyboard = KeyboardTool()
         self.click_mapper = {
@@ -18,18 +22,9 @@ class InputExecutor:
         }
 
     def start(self):
-        try:
-            while True:
-                action = self._socket.recv()
-                if action == b"0":
-                    data = self._socket.recv_string()
-                    self.execute_input(data)
-                elif action == b"1":
-                    self._socket.close()
-                    break
-            print("Terminat")
-        except:
-            print("Terminat")
+        while True:
+            data = self._socket.recv_string()
+            self.execute_input(data)
 
     def execute_input(self, data):
         action, details = data.split(":")
@@ -46,9 +41,15 @@ class InputExecutor:
             button, pressed = details.split(",")
             self.click_mapper[f"{button}{pressed}"]()
 
+    def clean(self):
+        self._context.destroy(linger=0)
+
 
 if __name__ == "__main__":
-    if len(sys.argv) == 2:
-        InputExecutor(sys.argv[1]).start()
-    else:
-        print("No port given")
+    ie = None
+    try:
+        ie = InputExecutor()
+        ie.start()
+    except Exception as ex:
+        ie.clean()
+

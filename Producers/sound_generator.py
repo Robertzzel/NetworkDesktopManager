@@ -1,29 +1,23 @@
 import sounddevice as sd
 from configurations import Configurations
 import zmq
-import sys
+import zmq.sugar
 
 
 class SoundGenerator:
-    def __init__(self, port):
+    def __init__(self):
         self._device_index = self._get_device_index()
-        self._socket = zmq.Context().socket(zmq.REP)
-        self._socket.connect(f"tcp://localhost:{port}")
+        self._context = zmq.Context()
+        self._socket: zmq.sugar.Socket = self._context.socket(zmq.PUSH)
+        self._socket.connect(f"ipc://{Configurations.SERVER_GENERATORS_FILE_LINUX}")
 
     def start(self):
-        try:
-            while True:
-                action = self._socket.recv()
-                if action == b"0":
-                    rec = sd.rec(Configurations.SOUND_RECORD_SECONDS * Configurations.SOUND_FRAMES,
-                                 samplerate=Configurations.SOUND_FRAMES,
-                                 channels=Configurations.SOUND_CHANNELS, blocking=True)
-                    self._socket.send_pyobj(rec)
-                elif action == b"1":
-                    break
-            print("Generator inchis")
-        except:
-            print("Generator inchis")
+        while True:
+            rec = sd.rec(Configurations.SOUND_RECORD_SECONDS * Configurations.SOUND_FRAMES,
+                         samplerate=Configurations.SOUND_FRAMES,
+                         channels=Configurations.SOUND_CHANNELS, blocking=True)
+
+            self._socket.send_pyobj((1, rec))
 
     def _get_device_index(self):
         for index, dev in enumerate(sd.query_devices()):
@@ -31,7 +25,14 @@ class SoundGenerator:
                 return index
         raise Exception("Pulse device not found")
 
+    def clean(self):
+        self._context.destroy(linger=0)
+
 
 if __name__ == "__main__":
-    if len(sys.argv) == 2:
-        SoundGenerator(sys.argv[1]).start()
+    sg = None
+    try:
+        sg = SoundGenerator()
+        sg.start()
+    except Exception as ex:
+        sg.clean()

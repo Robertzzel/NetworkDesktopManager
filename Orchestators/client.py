@@ -16,15 +16,15 @@ class Client(Orchestrator):
         self._process_pool: List[Popen] = []
         self._image_displayer_address = image_displayer_address
 
-        self._socket_image_server = self._context.socket(zmq.REQ)
+        self._socket_image_server = self._context.socket(zmq.PULL)
         self._socket_image_server.connect(f"tcp://{image_address}")
         self._socket_image_server.RCVTIMEO = 3000
 
-        self._socket_sound_server = self._context.socket(zmq.REQ)
+        self._socket_sound_server = self._context.socket(zmq.PULL)
         self._socket_sound_server.connect(f"tcp://{sound_address}")
         self._socket_sound_server.RCVTIMEO = 5000
 
-        self._socket_input_server = self._context.socket(zmq.PAIR)
+        self._socket_input_server = self._context.socket(zmq.PUSH)
         self._socket_input_server.connect(f"tcp://{input_address}")
         self._socket_input_server.RCVTIMEO = 1000
 
@@ -34,7 +34,7 @@ class Client(Orchestrator):
 
         self._socket_sound_player = self._context.socket(zmq.PAIR)
         self._sound_player_port = self._socket_sound_player.bind_to_random_port("tcp://*", min_port=6001, max_port=7004, max_tries=100)
-        self._socket_sound_player.RCVTIMEO = 1000
+        self._socket_sound_player.RCVTIMEO = 5000
 
         self._socket_input_generator = self._context.socket(zmq.PAIR)
         self._input_generator_port = self._socket_input_generator.bind_to_random_port("tcp://*", min_port=6001, max_port=7004, max_tries=100)
@@ -56,14 +56,13 @@ class Client(Orchestrator):
 
         await asyncio.gather(
             self._connect_to_image_server(),
-            # self._connect_to_sound_server(),
+            self._connect_to_sound_server(),
             # self._connect_to_input_server()
         )
         print("GATA CL")
 
     async def _connect_to_image_server(self):
         while self._running:
-            self._socket_image_server.send(b"0")
             encoded_image = await self.receive_object(self._socket_image_server)
             if encoded_image is None:
                 self._socket_image_displayer.send(b"1", zmq.NOBLOCK)
@@ -74,12 +73,12 @@ class Client(Orchestrator):
 
     async def _connect_to_sound_server(self):
         while self._running:
-            self._socket_sound_server.send(b"0")
             sound = await self.receive_object(self._socket_sound_server)
             if sound is None:
                 self._socket_sound_player.send(b"1")
                 break
 
+            print("sound received")
             self._socket_sound_player.send(b"0")
             self._socket_sound_player.send_pyobj(sound)
 
@@ -87,10 +86,8 @@ class Client(Orchestrator):
         while self._running:
             action = await self.receive_string(self._socket_input_generator)
             if action is None:
-                self._socket_input_server.send(b"1")
                 break
 
-            self._socket_input_server.send(b"0")
             self._socket_input_server.send_string(action)
 
     def stop(self):

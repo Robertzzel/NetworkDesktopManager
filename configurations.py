@@ -16,4 +16,6 @@ class Configurations:
     SOUND_CHANNELS = 2
     SOUND_FRAMES = int(44100/16)
     SOUND_DEVICE = 20
+    SERVER_GENERATORS_FILE_LINUX = "/tmp/alo_aici_pyzmq/0"
+    SERVER_EXECUTOR_FILE_LINUX = "/tmp/alo_aici_pyzmq/1"
 

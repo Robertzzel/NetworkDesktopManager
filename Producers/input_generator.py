@@ -1,4 +1,6 @@
-import zmq, sys
+import signal
+
+import zmq, sys, zmq.sugar
 from Tools.keyboard_tool import KeyboardTool, Key
 from Commons.input_actions import InputActions
 from threading import Thread
@@ -9,26 +11,21 @@ class InputGenerator:
     def __init__(self, port):
         self._keyboard = KeyboardTool()
         self._mouse = MouseTool()
+
         self._thread_keyboard: Thread = None
         self._thread_mouse: Thread = None
-        self._socket = zmq.Context().socket(zmq.PAIR)
+        self._context = zmq.Context()
+        self._socket: zmq.sugar.Socket = self._context.socket(zmq.PUSH)
         self._socket.connect(f"tcp://localhost:{port}")
 
     def start(self):
-        try:
-            self._thread_keyboard = Thread(target=self._keyboard.listen_keyboard,
-                                           args=(self.on_press, self.on_release,), daemon=True)
-            self._thread_keyboard.start()
+        self._thread_keyboard = Thread(target=self._keyboard.listen_keyboard,
+                                       args=(self.on_press, self.on_release,))
+        self._thread_keyboard.start()
 
-            self._thread_mouse = Thread(target=self._mouse.listen_for_clicks,
-                                        args=(self._on_move, self._on_click), daemon=True)
-            self._thread_mouse.start()
-
-            while True:
-                if self._socket.recv() == b"1":
-                    self.stop()
-        except:
-            print("Gata generatorul")
+        self._thread_mouse = Thread(target=self._mouse.listen_for_clicks,
+                                    args=(self._on_move, self._on_click))
+        self._thread_mouse.start()
 
     def on_press(self, key):
         if type(key) != Key:
@@ -48,10 +45,16 @@ class InputGenerator:
     def _on_click(self, x, y, button, pressed):
         self._socket.send_string(f"{InputActions.CLICK.value}:{button},{pressed}")
 
-    def stop(self):
+    def clean(self):
+        self._context.destroy(linger=0)
         sys.exit(0)
 
 
 if __name__ == "__main__":
+    signal.signal(signal.SIGINT, lambda x, y: ig.clean())
     if len(sys.argv) == 2:
-        InputGenerator(sys.argv[1]).start()
+        ig = InputGenerator(sys.argv[1])
+        ig.start()
+    else:
+        print("Port error")
+

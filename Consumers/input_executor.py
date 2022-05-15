@@ -1,3 +1,5 @@
+import signal
+
 from Tools.mouse_tool import MouseTool
 from Tools.keyboard_tool import KeyboardTool
 from Commons.input_actions import InputActions
@@ -43,13 +45,12 @@ class InputExecutor:
 
     def clean(self):
         self._context.destroy(linger=0)
+        sys.exit(0)
 
 
 if __name__ == "__main__":
-    ie = None
-    try:
-        ie = InputExecutor()
-        ie.start()
-    except Exception as ex:
-        ie.clean()
+    signal.signal(signal.SIGINT, lambda x, y: ie.clean())
+    ie = InputExecutor()
+    ie.start()
+
 

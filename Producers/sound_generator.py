@@ -1,6 +1,8 @@
+import sys
+
 import sounddevice as sd
 from configurations import Configurations
-import zmq
+import zmq, signal
 import zmq.sugar
 
 
@@ -9,6 +11,7 @@ class SoundGenerator:
         self._device_index = self._get_device_index()
         self._context = zmq.Context()
         self._socket: zmq.sugar.Socket = self._context.socket(zmq.PUSH)
+        self._socket.setsockopt(zmq.SNDHWM, 1)
         self._socket.connect(f"ipc://{Configurations.SERVER_GENERATORS_FILE_LINUX}")
 
     def start(self):
@@ -27,12 +30,11 @@ class SoundGenerator:
 
     def clean(self):
         self._context.destroy(linger=0)
+        sys.exit(0)
 
 
 if __name__ == "__main__":
-    sg = None
-    try:
-        sg = SoundGenerator()
-        sg.start()
-    except Exception as ex:
-        sg.clean()
+    signal.signal(signal.SIGINT, lambda x, y: sg.clean())
+    sg = SoundGenerator()
+    sg.start()
+

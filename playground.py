@@ -9,11 +9,23 @@ from Commons.image_operations import ImageOperations
 import uvloop
 
 
-if __name__ == "__main__":
-    try:
-        while True:
-            pass
-    except KeyboardInterrupt:
+async def inf():
+    while True:
+        await asyncio.sleep(1)
+
+
+async def mian():
+    g = asyncio.gather(inf(), inf())
+    if g.done():
         print("Hello")
-    except:
-        print("Aiai e")
+    else:
+        print("Nope")
+        g.cancel()
+        await g
+        if g.done():
+            print("Ok")
+        else:
+            print("rau")
+
+if __name__ == "__main__":
+    asyncio.run(mian())

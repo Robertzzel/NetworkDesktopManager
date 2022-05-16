@@ -1,5 +1,4 @@
-import signal
-
+import signal, os
 import zmq, sys, zmq.sugar
 from Tools.keyboard_tool import KeyboardTool, Key
 from Commons.input_actions import InputActions
@@ -27,6 +26,9 @@ class InputGenerator:
                                     args=(self._on_move, self._on_click))
         self._thread_mouse.start()
 
+        self._thread_mouse.join()
+        self._thread_keyboard.join()
+
     def on_press(self, key):
         if type(key) != Key:
             self._socket.send_string(f"{InputActions.PRESS.value}:{key.char}")
@@ -47,7 +49,10 @@ class InputGenerator:
 
     def clean(self):
         self._context.destroy(linger=0)
-        sys.exit(0)
+        try:
+            sys.exit(0)
+        except:
+            os._exit(0)
 
 
 if __name__ == "__main__":

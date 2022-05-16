@@ -1,4 +1,5 @@
 import sys
+import time
 
 from Tools.screenshot_tool import ScreenshotTool
 from Commons.image_operations import ImageOperations
@@ -16,7 +17,9 @@ class ImageGenerator:
 
     def start(self):
         while True:
+            b = time.time()
             img = ImageOperations.encode(self._tool.get_screenshot())
+            print({time.time() - b})
             self._socket.send_pyobj((0, img))
 
     def clean(self):

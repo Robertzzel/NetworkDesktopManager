@@ -12,7 +12,7 @@ import asyncio
 class Server(Orchestrator):
     def __init__(self, image_address, input_address, sound_address):
         self._process_pool: List[Popen] = []
-        self._running_tasks = None
+        self._running_tasks: asyncio.Future = None
         self._context = zmq.asyncio.Context()
 
         self._socket_image_client: zmq.sugar.Socket = self._context.socket(zmq.PUSH)
@@ -48,7 +48,12 @@ class Server(Orchestrator):
             self._manage_sounds_images(),
             self._manage_inputs()
         )
-        await self._running_tasks
+
+        try:
+            await self._running_tasks
+        except asyncio.CancelledError:
+            pass
+        await self.cancel_processes()
 
     async def _manage_sounds_images(self):
         while True:
@@ -71,25 +76,35 @@ class Server(Orchestrator):
                 break
             self._socket_input.send(action)
 
-    def stop(self):
-        print("Stopping server")
-        self._running_tasks.cancel()
+    async def cancel_tasks(self):
+        if self._running_tasks is not None and not self._running_tasks.done():
+            self._running_tasks.cancel()
+            try:
+                await self._running_tasks
+            except asyncio.CancelledError:
+                pass
+
+    async def cancel_processes(self):
         for process in self._process_pool:
-            process.send_signal(signal.SIGINT)
+            if process.poll() is None:
+                process.send_signal(signal.SIGINT)
+                await asyncio.sleep(0.1)
+                if process.poll() is None:
+                    process.terminate()
 
         self._context.destroy(linger=0)
-        sys.exit(0)
 
 
 if __name__ == "__main__":
-    signal.signal(signal.SIGINT, lambda x, y: server.stop())
+    loop = asyncio.new_event_loop()
+    loop.add_signal_handler(signal.SIGINT, lambda: loop.create_task(server.cancel_tasks()))
+
     if len(sys.argv) == 4:
         server = Server(sys.argv[1], sys.argv[2], sys.argv[3])
-        try:
-            asyncio.run(server.start())
-        except asyncio.CancelledError:
-            print("Corutine oprite")
+        server_future = loop.create_task(server.start())
+        loop.run_until_complete(server_future)
     else:
         print("Input error")
+
 
 

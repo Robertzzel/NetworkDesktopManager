@@ -1,4 +1,5 @@
 import signal, sys, tkinter, cv2, zmq.asyncio, zmq.sugar
+import time
 from pathlib import Path
 from UI.ui import UI
 from subprocess import Popen
@@ -12,13 +13,13 @@ class App(UI):
         super().__init__()
         self._window.geometry("900x900")
         self.create_widgets()
-        self._window.protocol("WM_DELETE_WINDOW", )
+        self._window.protocol("WM_DELETE_WINDOW", self.close)
 
         self._context = zmq.Context()
-        self._socket: zmq.sugar.Socket = self._context.socket(zmq.PULL)
+        self._socket: zmq.sugar.Socket = self._context.socket(zmq.PAIR)
         self._socket_port = self._socket.bind_to_random_port("tcp://*", min_port=6001, max_port=7004, max_tries=100)
 
-        self._orchestrator_process = None
+        self._orchestrator_process: Popen = None
         self._running = True
 
     def create_widgets(self):
@@ -31,8 +32,6 @@ class App(UI):
         self.btn_disconnect["state"] = tkinter.DISABLED
 
     def start_streaming(self):
-        cv2.namedWindow(Configurations.WINDOW_NAME, cv2.WINDOW_FULLSCREEN)
-
         self._running = True
 
         server_path = str(Path(__file__).parent.parent / "Orchestators" / "server.py")
@@ -47,7 +46,11 @@ class App(UI):
         self.variable_host.set(Configurations.SERVER_IP)
 
     def start_connecting(self):
+        cv2.namedWindow(Configurations.WINDOW_NAME, cv2.WINDOW_FULLSCREEN)
+
         self._running = True
+
+        print(f"Binded to port {self._socket_port}")
 
         connection_host = Configurations.SERVER_IP \
             if self.variable_host.get() == "" or self.variable_host.get() == "localhost" else self.variable_host.get()
@@ -68,10 +71,13 @@ class App(UI):
     def disconnect(self):
         self._running = False
 
-        cv2.destroyWindow(Configurations.WINDOW_NAME)
+        try:
+            cv2.destroyWindow(Configurations.WINDOW_NAME)
+            cv2.waitKey(1)
+        except:
+            pass
 
         self._orchestrator_process.send_signal(signal.SIGINT)
-        self._orchestrator_process.wait(timeout=5)
 
         self.btn_connect["state"] = tkinter.NORMAL
         self.btn_stream["state"] = tkinter.NORMAL
@@ -80,9 +86,10 @@ class App(UI):
     def close(self):
         try:
             self.disconnect()
-        except:
+        except Exception as ex:
             pass
         self._context.destroy(linger=0)
+        self._window.destroy()
 
     def update_screen(self):
         while self._running:

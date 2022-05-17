@@ -24,15 +24,12 @@ class Server(Orchestrator):
         self._socket_input_client: zmq.sugar.Socket = self._context.socket(zmq.PULL)
         self._socket_input_client.bind(f"tcp://{input_address}")
 
-        self.create_file(Configurations.SERVER_GENERATORS_FILE_LINUX)
         self._socket_img_snd: zmq.sugar.Socket = self._context.socket(zmq.PULL)
-        self._socket_img_snd.bind(f"ipc://{Configurations.SERVER_GENERATORS_FILE_LINUX}")
-        self._socket_img_snd.setsockopt(zmq.CONFLATE, 1)
+        self._port_img_snd = self._socket_img_snd.bind_to_random_port(f"tcp://*")
         self._socket_img_snd.RCVTIMEO = 10000
 
-        self.create_file(Configurations.SERVER_EXECUTOR_FILE_LINUX)
         self._socket_input: zmq.sugar.Socket = self._context.socket(zmq.PUSH)
-        self._socket_input.bind(f"ipc://{Configurations.SERVER_EXECUTOR_FILE_LINUX}")
+        self._port_input = self._socket_input.bind_to_random_port(f"tcp://*")
         self._socket_input.RCVTIMEO = 10000
 
     async def start(self):
@@ -40,9 +37,10 @@ class Server(Orchestrator):
 
         base_path = Path(__file__).parent.parent
         process_paths = [base_path / "Producers" / "image_generator.py", base_path / "Producers" / "sound_generator.py", base_path / "Consumers" / "input_executor.py"]
+        process_port = [self._port_img_snd, self._port_img_snd, self._port_input]
 
-        for file in process_paths:
-            self._process_pool.append(Popen([sys.executable, str(file)]))
+        for file, port in zip(process_paths, process_port):
+            self._process_pool.append(Popen([sys.executable, str(file), str(port)]))
 
         self._running_tasks = asyncio.gather(
             self._manage_sounds_images(),

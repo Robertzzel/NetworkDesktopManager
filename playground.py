@@ -1,31 +1,37 @@
 import asyncio
-import os
-import time
-import pickle
 import zmq.asyncio
-import zmq.sugar
-from Tools.screenshot_tool import ScreenshotTool
-from Commons.image_operations import ImageOperations
-import uvloop
 
 
-async def inf():
+async def respond(sock, msg):
     while True:
-        await asyncio.sleep(1)
+        await sock.recv()
+        sock.send_string(msg)
 
 
-async def mian():
-    g = asyncio.gather(inf(), inf())
-    if g.done():
-        print("Hello")
-    else:
-        print("Nope")
-        g.cancel()
-        await g
-        if g.done():
-            print("Ok")
-        else:
-            print("rau")
+async def main():
+    c = zmq.asyncio.Context()
+    s0 = c.socket(zmq.REP)
+    s0.bind("tcp://*:5002")
+
+    s1 = c.socket(zmq.REP)
+    s1.bind("tcp://*:5003")
+
+    s2 = c.socket(zmq.REQ)
+    s2.connect("tcp://localhost:5002")
+    s2.connect("tcp://localhost:5003")
+
+    t = asyncio.gather( respond(s0, "Hello"), respond(s1, "5"),)
+
+    s2.send(b"0")
+    s2.send(b"0")
+    print(await s2.recv())
+    print(await s2.recv())
+
+    await t
 
 if __name__ == "__main__":
-    asyncio.run(mian())
+    asyncio.run(main())
+
+
+
+

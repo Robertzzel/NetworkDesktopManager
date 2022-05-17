@@ -1,18 +1,16 @@
 import signal
-
 from Tools.mouse_tool import MouseTool
 from Tools.keyboard_tool import KeyboardTool
 from Commons.input_actions import InputActions
-from configurations import Configurations
 import zmq, sys
 import zmq.sugar
 
 
 class InputExecutor:
-    def __init__(self):
+    def __init__(self, port):
         self._context = zmq.Context()
         self._socket: zmq.sugar.Socket = self._context.socket(zmq.PULL)
-        self._socket.connect(f"ipc://{Configurations.SERVER_EXECUTOR_FILE_LINUX}")
+        self._socket.connect(f"tcp://localhost:{port}")
 
         self._mouse = MouseTool()
         self._keyboard = KeyboardTool()
@@ -50,7 +48,10 @@ class InputExecutor:
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, lambda x, y: ie.clean())
-    ie = InputExecutor()
-    ie.start()
+    if len(sys.argv) == 2:
+        ie = InputExecutor(sys.argv[1])
+        ie.start()
+    else:
+        print("Port missing")
 
 

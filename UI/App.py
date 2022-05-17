@@ -1,5 +1,4 @@
 import signal, sys, tkinter, cv2, zmq.asyncio, zmq.sugar
-import time
 from pathlib import Path
 from UI.ui import UI
 from subprocess import Popen
@@ -23,15 +22,15 @@ class App(UI):
         self._running = True
 
     def create_widgets(self):
-        self.btn_connect = self._create_button(text="Connect", command=lambda: Thread(target=self.start_connecting).start(), x_position=20, y_position=20)
-        self.btn_stream = self._create_button(text="Stream", command=lambda: Thread(target=self.start_streaming).start(), x_position=120, y_position=20)
+        self.btn_connect = self._create_button(text="Connect", command=lambda: Thread(target=self.connect).start(), x_position=20, y_position=20)
+        self.btn_stream = self._create_button(text="Stream", command=lambda: Thread(target=self.stream).start(), x_position=120, y_position=20)
         self._create_label(x_pos=220, y_pos=20, text="HOST:", font=("Arial", 18))
         entry_host, self.variable_host = self._create_entry(x_position=320, y_position=20, width=150, height=30)
         self.btn_disconnect = self._create_button(text="Disconnect", command=self.disconnect, x_position=760, y_position=20)
 
         self.btn_disconnect["state"] = tkinter.DISABLED
 
-    def start_streaming(self):
+    def stream(self):
         self._running = True
 
         server_path = str(Path(__file__).parent.parent / "Orchestators" / "server.py")
@@ -45,12 +44,8 @@ class App(UI):
         self.btn_disconnect["state"] = tkinter.NORMAL
         self.variable_host.set(Configurations.SERVER_IP)
 
-    def start_connecting(self):
-        cv2.namedWindow(Configurations.WINDOW_NAME, cv2.WINDOW_FULLSCREEN)
-
+    def connect(self):
         self._running = True
-
-        print(f"Binded to port {self._socket_port}")
 
         connection_host = Configurations.SERVER_IP \
             if self.variable_host.get() == "" or self.variable_host.get() == "localhost" else self.variable_host.get()

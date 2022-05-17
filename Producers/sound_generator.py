@@ -1,5 +1,4 @@
 import sys
-
 import sounddevice as sd
 from configurations import Configurations
 import zmq, signal
@@ -7,12 +6,11 @@ import zmq.sugar
 
 
 class SoundGenerator:
-    def __init__(self):
+    def __init__(self, port):
         self._device_index = self._get_device_index()
         self._context = zmq.Context()
         self._socket: zmq.sugar.Socket = self._context.socket(zmq.PUSH)
-        self._socket.setsockopt(zmq.SNDHWM, 1)
-        self._socket.connect(f"ipc://{Configurations.SERVER_GENERATORS_FILE_LINUX}")
+        self._socket.connect(f"tcp://localhost:{port}")
 
     def start(self):
         while True:
@@ -35,6 +33,9 @@ class SoundGenerator:
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, lambda x, y: sg.clean())
-    sg = SoundGenerator()
-    sg.start()
+    if len(sys.argv) == 2:
+        sg = SoundGenerator(sys.argv[1])
+        sg.start()
+    else:
+        print("No port given")
 

@@ -1,4 +1,5 @@
 import signal, sys, tkinter, cv2, zmq.asyncio, zmq.sugar
+import time
 from pathlib import Path
 from UI.ui import UI
 from subprocess import Popen
@@ -19,11 +20,12 @@ class App(UI):
         self._socket_port = self._socket.bind_to_random_port("tcp://*", min_port=6001, max_port=7004, max_tries=100)
 
         self._orchestrator_process: Popen = None
+        self._update_loop: Thread = None
         self._running = True
 
     def create_widgets(self):
-        self.btn_connect = self._create_button(text="Connect", command=lambda: Thread(target=self.connect).start(), x_position=20, y_position=20)
-        self.btn_stream = self._create_button(text="Stream", command=lambda: Thread(target=self.stream).start(), x_position=120, y_position=20)
+        self.btn_connect = self._create_button(text="Connect", command=self.connect, x_position=20, y_position=20)
+        self.btn_stream = self._create_button(text="Stream", command=self.stream, x_position=120, y_position=20)
         self._create_label(x_pos=220, y_pos=20, text="HOST:", font=("Arial", 18))
         entry_host, self.variable_host = self._create_entry(x_position=320, y_position=20, width=150, height=30)
         self.btn_disconnect = self._create_button(text="Disconnect", command=self.disconnect, x_position=760, y_position=20)
@@ -46,6 +48,7 @@ class App(UI):
 
     def connect(self):
         self._running = True
+        # cv2.namedWindow(Configurations.WINDOW_NAME, cv2.WINDOW_FULLSCREEN)
 
         connection_host = Configurations.SERVER_IP \
             if self.variable_host.get() == "" or self.variable_host.get() == "localhost" else self.variable_host.get()
@@ -55,13 +58,14 @@ class App(UI):
                                             f"{connection_host}:5101",
                                             f"{connection_host}:5102",
                                             f"{connection_host}:5103",
-                                            f"{connection_host}:{self._socket_port}"])
+                                            f"localhost:{self._socket_port}"])
 
         self.btn_connect["state"] = tkinter.DISABLED
         self.btn_stream["state"] = tkinter.DISABLED
         self.btn_disconnect["state"] = tkinter.NORMAL
 
-        self.update_screen()
+        self._update_loop = Thread(target=self.update_screen)
+        self._update_loop.start()
 
     def disconnect(self):
         self._running = False
@@ -73,6 +77,11 @@ class App(UI):
             pass
 
         self._orchestrator_process.send_signal(signal.SIGINT)
+        while self._orchestrator_process.poll() is None:
+            print("Is still alive")
+            time.sleep(1)
+
+        # self._update_loop.join()
 
         self.btn_connect["state"] = tkinter.NORMAL
         self.btn_stream["state"] = tkinter.NORMAL

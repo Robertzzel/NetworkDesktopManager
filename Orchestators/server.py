@@ -1,6 +1,5 @@
 import signal
 from Orchestators.orchestrator import Orchestrator
-from configurations import Configurations
 import zmq.asyncio, sys
 import zmq.sugar
 from subprocess import Popen
@@ -72,7 +71,7 @@ class Server(Orchestrator):
             except Exception as ex:
                 print(ex)
                 break
-            self._socket_input.send(action)
+            self._socket_input.send_string(action)
 
     async def cancel_tasks(self):
         if self._running_tasks is not None and not self._running_tasks.done():

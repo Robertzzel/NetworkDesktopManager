@@ -1,11 +1,13 @@
 import cv2
 from cv2 import imread, cvtColor, COLOR_BGRA2BGR, COLOR_RGB2BGR
 from PIL.ImageGrab import grab
+from PIL import Image, ImageQt
 from pyautogui import position
 from numpy import array, ndarray
 from configurations import Configurations
 from mss import mss
 from platform import platform
+from PyQt5.QtGui import QPixmap
 
 
 class ScreenshotTool:
@@ -44,6 +46,10 @@ class ScreenshotTool:
 
     def get_screen_shape(self):
         return self._screen_shape
+
+    @staticmethod
+    def opencv_image_to_pixmap(ndarr):
+        return QPixmap.fromImage(ImageQt.ImageQt(Image.fromarray(cv2.cvtColor(ndarr, cv2.COLOR_BGR2RGB))))
 
 
 if __name__ == "__main__":

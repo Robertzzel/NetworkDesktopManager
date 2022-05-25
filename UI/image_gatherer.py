@@ -1,6 +1,5 @@
 from pathlib import Path
 from subprocess import Popen
-from configurations import Configurations
 from PyQt5.QtCore import QRunnable
 import sys, zmq, zmq.sugar, signal
 from worker_signals import WorkerSignals
@@ -9,11 +8,12 @@ from worker_signals import WorkerSignals
 class ImageGatherer(QRunnable):
     signals = WorkerSignals()
 
-    def __init__(self):
+    def __init__(self, address):
         super().__init__()
         self.running = True
         self.context = zmq.Context()
         self.orchestrator_process: Popen = None
+        self.address = address
 
     def run(self):
         sock: zmq.sugar.Socket = self.context.socket(zmq.PAIR)
@@ -32,10 +32,10 @@ class ImageGatherer(QRunnable):
     def start_client(self, ui_port):
         client_path = str(Path(__file__).parent.parent / "Orchestators" / "client.py")
         self.orchestrator_process = Popen([sys.executable, client_path,
-                                            f"{Configurations.SERVER_IP}:5101",
-                                            f"{Configurations.SERVER_IP}:5102",
-                                            f"{Configurations.SERVER_IP}:5103",
-                                            f"{Configurations.SERVER_IP}:{ui_port}"])
+                                            f"{self.address}:5101",
+                                            f"{self.address}:5102",
+                                            f"{self.address}:5103",
+                                            f"{self.address}:{ui_port}"])
 
     def stop(self):
         self.running = False

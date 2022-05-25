@@ -5,9 +5,9 @@ from Orchestators.client import Client
 from configurations import Configurations
 import signal, asyncio
 
-ADDRESS = f"{Configurations.SERVER_IP}:5101"
-ADDRESS_INPUT = f"{Configurations.SERVER_IP}:5102"
-ADDRESS_SOUND = f"{Configurations.SERVER_IP}:5103"
+ADDRESS = f"{Configurations.CURRENT_IP}:5101"
+ADDRESS_INPUT = f"{Configurations.CURRENT_IP}:5102"
+ADDRESS_SOUND = f"{Configurations.CURRENT_IP}:5103"
 
 
 def received_signal(sig, frame):

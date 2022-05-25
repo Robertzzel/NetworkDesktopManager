@@ -5,6 +5,8 @@ from PyQt5.QtCore import QThreadPool
 from Commons.image_operations import ImageOperations
 from image_gatherer import ImageGatherer
 from stream import Stream
+from configurations import Configurations
+from ipaddress import ip_address
 
 
 class App(QWidget):
@@ -15,7 +17,7 @@ class App(QWidget):
         self._contex = zmq.Context()
         self._socket: zmq.sugar.Socket = self._contex.socket(zmq.PAIR)
 
-        self.image_gatherer = ImageGatherer()
+        self.image_gatherer = ImageGatherer(self.get_address())
         self.image_gatherer.signals.image_signal.connect(self.display_image)
         self.image_gatherer.signals.final_signal.connect(self.set_ui_normal)
 
@@ -58,7 +60,7 @@ class App(QWidget):
         self.setGeometry(700, 700, 800, 600)
 
     def _start_image_gatherer(self):
-        self.image_gatherer = ImageGatherer()
+        self.image_gatherer = ImageGatherer(self.get_address())
         pool = QThreadPool.globalInstance()
         pool.start(self.image_gatherer)
         self.set_ui_for_stream_or_connect()
@@ -94,6 +96,22 @@ class App(QWidget):
         self.btn_connect.setEnabled(False)
         self.btn_stream.setEnabled(False)
         self.btn_stop.setEnabled(True)
+
+    def get_address(self):
+        try:
+            address = self.text_box.text()
+        except AttributeError:
+            return Configurations.CURRENT_IP
+
+        if address == '' or address == 'localhost':
+            return Configurations.CURRENT_IP
+
+        try:
+            ip_address(address)
+        except ValueError:
+            return Configurations.CURRENT_IP
+        else:
+            return address
 
 
 if __name__ == "__main__":

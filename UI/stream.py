@@ -16,9 +16,9 @@ class Stream(QRunnable):
 
     def run(self):
         self.process = Popen([sys.executable, self.server_path,
-                                            f"{Configurations.SERVER_IP}:5101",
-                                            f"{Configurations.SERVER_IP}:5102",
-                                            f"{Configurations.SERVER_IP}:5103"])
+                                            f"{Configurations.CURRENT_IP}:5101",
+                                            f"{Configurations.CURRENT_IP}:5102",
+                                            f"{Configurations.CURRENT_IP}:5103"])
 
     def stop(self):
         if self.process is not None:

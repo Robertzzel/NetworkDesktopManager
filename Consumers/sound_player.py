@@ -1,29 +1,37 @@
+import signal
+
 import sounddevice as sd
-from threading import Thread
-from queue import Queue
 from configurations import Configurations
 from numpy import frombuffer, float32
+import zmq, zmq.sugar, sys
 
 
 class SoundPlayer:
-    def __init__(self, queue):
-        Configurations.LOGGER.warning("CLIENT: Initialising Sound Player...")
-        self._recording = None
-        self._running = True
-        self._queue: Queue = queue
+    def __init__(self, port):
+        self._context = zmq.Context()
+        self._socket: zmq.sugar.Socket = self._context.socket(zmq.PULL)
+        self._socket.connect(f"tcp://localhost:{port}")
 
     def start(self):
-        Configurations.LOGGER.warning("CLIENT: Starting Sound Player...")
-        Thread(target=self._start_recording_sending).start()
-
-    def _start_recording_sending(self):
-        while self._running:
-            data = self._queue.get()
-            sounds = frombuffer(data, float32)
+        while True:
+            sounds = frombuffer(self._socket.recv_pyobj(), float32)
             sounds.shape = (sounds.shape[0]//Configurations.SOUND_CHANNELS, Configurations.SOUND_CHANNELS)
             sd.play(sounds, Configurations.SOUND_FRAMES)
             sd.wait()
 
-    def stop(self):
-        Configurations.LOGGER.warning("CLIENT: Stopping Sound Player...")
-        self._running = False
+    def clean(self):
+        sd.stop()
+        sd._terminate()
+        self._context.destroy(linger=0)
+        sys.exit(0)
+
+
+if __name__ == "__main__":
+    signal.signal(signal.SIGINT, lambda x, y: sp.clean())
+    if len(sys.argv) == 2:
+        sp = SoundPlayer(sys.argv[1])
+        sp.start()
+    else:
+        print("No port given")
+
+

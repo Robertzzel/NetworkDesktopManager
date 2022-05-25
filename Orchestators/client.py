@@ -1,115 +1,113 @@
+import asyncio, signal, zmq.asyncio, sys
 import time
-
-from Consumers.image_displayer import ImageDisplayer
-from Producers.mouse_generator import MouseGenerator
-from Producers.keyboard_generator import KeyboardGenerator
-from Consumers.sound_player import SoundPlayer
+from threading import Thread
+from pathlib import Path
 from Orchestators.orchestrator import Orchestrator
-from multiprocessing import Queue
-from threading import Thread, Lock
-from socket import socket, AF_INET, SOCK_STREAM
-from configurations import Configurations
+from subprocess import Popen
+from typing import *
 
 
 class Client(Orchestrator):
-    def __init__(self, image_address, input_address, sound_address):
-        Configurations.LOGGER.warning("CLIENT: Initialising...")
-        self._image_socket = socket(AF_INET, SOCK_STREAM)
-        self._input_socket = socket(AF_INET, SOCK_STREAM)
-        self._sound_socket = socket(AF_INET, SOCK_STREAM)
-        self._image_address = image_address
-        self._input_address = input_address
-        self._sound_address = sound_address
+    def __init__(self, image_address, input_address, sound_address, image_displayer_address=None):
+        self._active_tasks: asyncio.Future = None
+        self._context = zmq.asyncio.Context()
+        self._process_pool: List[Popen] = []
 
-        self._image_queue = Queue(4)
-        self._keyboard_queue = Queue()
-        self._mouse_queue = Queue(4)
-        self._sound_queue = Queue()
-        self._input_lock = Lock()
+        self._socket_image_server = self._context.socket(zmq.PULL)
+        self._socket_image_server.connect(f"tcp://{image_address}")
+        self._socket_image_server.RCVTIMEO = 5000
 
-        self._keyboard_generator = KeyboardGenerator(self._keyboard_queue)
-        self._mouse_sender = MouseGenerator(self._mouse_queue)
-        self._sound_sender = SoundPlayer(self._sound_queue)
-        self._images_receiver = ImageDisplayer(self._image_queue)
+        self._socket_sound_server = self._context.socket(zmq.PULL)
+        self._socket_sound_server.connect(f"tcp://{sound_address}")
+        self._socket_sound_server.RCVTIMEO = 5000
 
-        self._running = True
+        self._socket_input_server = self._context.socket(zmq.PUSH)
+        self._socket_input_server.connect(f"tcp://{input_address}")
 
-    def start(self):
-        self._connect()
+        self._socket_image_displayer = self._context.socket(zmq.PAIR)
+        self._socket_image_displayer.connect(f"tcp://{image_displayer_address}")
+        print(f"Connected to {image_displayer_address}")
 
-        self._mouse_sender.start()
-        self._keyboard_generator.start()
-        self._sound_sender.start()
-        self._images_receiver.start()
+        self._socket_sound_player = self._context.socket(zmq.PUSH)
+        self._sound_player_port = self._socket_sound_player.bind_to_random_port("tcp://*", min_port=6001, max_port=7004,
+                                                                                max_tries=100)
 
-    def _connect(self):
-        Thread(target=self._connect_to_image_server).start()
-        Thread(target=self._connect_to_input_server).start()
-        Thread(target=self._connect_to_sound_server).start()
+        self._socket_input_generator = self._context.socket(zmq.PULL)
+        self._input_generator_port = self._socket_input_generator.bind_to_random_port("tcp://*", min_port=6001,
+                                                                                      max_port=7004, max_tries=100)
 
-    def _connect_to_image_server(self):
-        Configurations.LOGGER.warning("CLIENT: Connecting to image server...")
+    async def start(self):
+        base_path = Path(__file__).parent.parent
+        process_paths = [base_path / "Consumers" / "sound_player.py", base_path / "Producers" / "input_generator.py"]
+        process_ports = [self._sound_player_port, self._input_generator_port]
 
-        while True and self._running:
-            try:
-                print(f"Trying to connect to {self._image_address}")
-                self._image_socket.connect(self._image_address)
+        for file, port in zip(process_paths, process_ports):
+            self._process_pool.append(Popen([sys.executable, str(file), str(port)]))
+
+        self._active_tasks = asyncio.gather(
+            self._connect_to_image_server(),
+            self._connect_to_sound_server(),
+            # self._connect_to_input_server()
+        )
+
+        try:
+            await self._active_tasks
+        except asyncio.CancelledError:
+            pass
+        await self.stop_processes()
+
+    async def _connect_to_image_server(self):
+        while True:
+            encoded_image = await self.receive_object(self._socket_image_server)
+            if encoded_image is None:
                 break
-            except:
-                time.sleep(1)
 
-        Configurations.LOGGER.warning(f"CLIENT: Connected to image server at {self._image_address}")
-        while self._running:
-            encoded_image = self.receive_message(self._image_socket, Configurations.LENGTH_MAX_SIZE)
-            self._image_queue.put(encoded_image)
+            self._socket_image_displayer.send_pyobj(encoded_image)
 
-    def _connect_to_input_server(self):
-        Configurations.LOGGER.warning("CLIENT: Connecting to input server...")
-        while True and self._running:
-            try:
-                print(f"Trying to connect to {self._input_address}")
-                self._input_socket.connect(self._input_address)
+    async def _connect_to_sound_server(self):
+        while True:
+            sound = await self.receive_object(self._socket_sound_server)
+            if sound is None:
                 break
-            except:
-                time.sleep(1)
-        Configurations.LOGGER.warning(f"CLIENT: Connected to input server at {self._input_address}")
-        Thread(target=self._handle_keyboard_events).start()
-        self._handle_mouse_events()
 
-    def _handle_keyboard_events(self):
-        while self._running:
-            event = self._keyboard_queue.get()
-            self._input_lock.acquire()
-            self.send_message(self._input_socket, event, Configurations.INPUT_MAX_SIZE)
-            self._input_lock.release()
+            self._socket_sound_player.send_pyobj(sound)
 
-    def _handle_mouse_events(self):
-        while self._running:
-            event = self._mouse_queue.get()
-            self._input_lock.acquire()
-            self.send_message(self._input_socket, event, Configurations.INPUT_MAX_SIZE)
-            self._input_lock.release()
-
-    def _connect_to_sound_server(self):
-        Configurations.LOGGER.warning("CLIENT: Connecting to sound server...")
-        while True and self._running:
-            try:
-                print(f"Trying to connect to {self._sound_address}")
-                self._sound_socket.connect(self._sound_address)
+    async def _connect_to_input_server(self):
+        while True:
+            action = await self.receive_string(self._socket_input_generator)
+            if action is None:
                 break
-            except:
-                time.sleep(1)
-        Configurations.LOGGER.warning(f"CLIENT: Connected to sound server at {self._sound_address}")
-        while self._running:
-            sound = self.receive_message(self._sound_socket, Configurations.INPUT_MAX_SIZE)
-            self._sound_queue.put(sound)
 
-    def stop(self):
-        Configurations.LOGGER.warning("CLIENT: Stopping...")
-        self._running = False
-        self._sound_socket.close()
-        self._input_socket.close()
-        self._image_socket.close()
+            self._socket_input_server.send_string(action)
 
-        self._sound_sender.stop()
-        self._images_receiver.stop()
+    async def cancel_tasks(self):
+        if not self._active_tasks.done():
+            self._active_tasks.cancel()
+            try:
+                await self._active_tasks
+            except asyncio.CancelledError:
+                pass
+
+    async def stop_processes(self):
+        for process in self._process_pool:
+            if process.poll() is None:
+                process.send_signal(signal.SIGINT)
+                await asyncio.sleep(0.1)
+                if process.poll() is None:
+                    process.terminate()
+
+        self._context.destroy(linger=0)
+
+
+if __name__ == "__main__":
+    loop = asyncio.new_event_loop()
+    loop.add_signal_handler(signal.SIGINT, lambda: loop.create_task(client.cancel_tasks()))
+
+    if len(sys.argv) == 5:
+        client = Client(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+        client_future = loop.create_task(client.start())
+        loop.run_until_complete(client_future)
+    else:
+        print("Input problem")
+
+    print("Client stopped")

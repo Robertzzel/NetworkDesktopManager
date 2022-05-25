@@ -1,19 +1,30 @@
+from zmq.sugar import Socket
+
+
 class Orchestrator:
-    def receive_message(self, sock, length_max_size: int) -> bytes:
-        length_data = sock.recv(length_max_size).decode()
-        length = int(length_data)
-        return self.recv_all(sock, length)
+    async def receive_object(self, sock: Socket):
+        try:
+            return await sock.recv_pyobj()
+        except Exception as ex:
+            return None
 
-    def send_message(self, sock, message: bytes, length_max_size: int):
-        length_string = str(len(message)).rjust(length_max_size, "0")
-        sock.sendall(length_string.encode())
-        sock.sendall(message)
+    async def receive(self, sock: Socket):
+        try:
+            return await sock.recv()
+        except Exception as ex:
+            return None
 
-    def recv_all(self, sock, n):
-        final = bytearray()
-        received = 0
-        while received < n:
-            received_data = sock.recv(n - received)
-            final += received_data
-            received += len(received_data)
-        return final
+    async def receive_string(self, sock: Socket):
+        try:
+            return await sock.recv_string()
+        except Exception as ex:
+            return None
+
+    @staticmethod
+    def create_file(filepath):
+        import os
+
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        if not os.path.exists(filepath):
+            with open(filepath, 'w'):
+                pass

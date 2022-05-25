@@ -1,46 +1,37 @@
-import cv2
-import numpy as np
-import scipy.io.wavfile
-from PIL.ImageGrab import grab
-import time
-import sounddevice as sd
-import soundfile as sf
+import asyncio
+import zmq.asyncio
 
-def testare_ss():
-    s = time.time()
-    image = np.array(grab())
-    image = cv2.resize(image, (800, 600), cv2.INTER_AREA)
-    e1 = time.time()
 
-    encoded = cv2.imencode(".jpg", image)[1]
-    e2 = time.time()
+async def respond(sock, msg):
+    while True:
+        await sock.recv()
+        sock.send_string(msg)
 
-    decoded = cv2.imdecode(encoded, cv2.IMREAD_COLOR)
-    e3 = time.time()
-    print((e3 - e2 + e2 - e1 + e1 - s) * 1000)
-    cv2.imshow("das", decoded)
-    cv2.waitKey(0)
 
+async def main():
+    c = zmq.asyncio.Context()
+    s0 = c.socket(zmq.REP)
+    s0.bind("tcp://*:5002")
+
+    s1 = c.socket(zmq.REP)
+    s1.bind("tcp://*:5003")
+
+    s2 = c.socket(zmq.REQ)
+    s2.connect("tcp://localhost:5002")
+    s2.connect("tcp://localhost:5003")
+
+    t = asyncio.gather( respond(s0, "Hello"), respond(s1, "5"),)
+
+    s2.send(b"0")
+    s2.send(b"0")
+    print(await s2.recv())
+    print(await s2.recv())
+
+    await t
 
 if __name__ == "__main__":
-    for index, dev in enumerate(sd.query_devices()):
-        if 'pulse' in dev['name']:
-            sd.default.device = index
+    asyncio.run(main())
 
-    fs = int(44100/16)
-    ch = 2
-    sd.default.samplerate = fs
-    sd.default.channels = ch
 
-    myrec = sd.rec(int(fs * 10))
-    sd.wait()
-    #scipy.io.wavfile.write('out.wav', fs, myrec)
-    encoded = myrec.tobytes()
-    print("s-a scris in fisier")
 
-    decoded = np.frombuffer(encoded, dtype=np.float32)
-    decoded.shape = (decoded.shape[0]//2, 2)
-    #data, fs = sf.read("out.wav", dtype='float32')
-    sd.play(decoded, fs)
-    sd.wait()
 

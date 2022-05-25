@@ -15,12 +15,11 @@ if __name__ == "__main__":
         time.sleep(1)
         input()
     except:
-        pass
-
-    receiver_process.send_signal(signal.SIGINT)
-    sender_process.send_signal(signal.SIGINT)
-    print("Sending interrupt")
-    time.sleep(3)
-    receiver_process.kill()
-    sender_process.kill()
+        receiver_process.send_signal(signal.SIGINT)
+        sender_process.send_signal(signal.SIGINT)
+        input("se inchid?")
+    else:
+        receiver_process.send_signal(signal.SIGINT)
+        sender_process.send_signal(signal.SIGINT)
+        input("se inchid?")
 

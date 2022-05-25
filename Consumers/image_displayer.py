@@ -1,37 +1,33 @@
-import time
-from multiprocessing import Process
-from queue import Queue
 from Commons.image_operations import ImageOperations
 from cv2 import namedWindow, WINDOW_NORMAL, imshow, waitKey, destroyAllWindows
 from configurations import Configurations
+import zmq, sys
 
 
 class ImageDisplayer:
-    def __init__(self, queue):
-        self._queue: Queue = queue
-        self._process: Process = None
+    def __init__(self, port):
+        self._socket = zmq.Context().socket(zmq.PAIR)
+        self._socket.connect(f"tcp://localhost:{port}")
 
     def start(self):
-        Configurations.LOGGER.warning("CLIENT: Starting Image Displayer...")
-        self._process = Process(target=self._start_receiving)
-        self._process.start()
+        try:
+            namedWindow(Configurations.WINDOW_NAME, WINDOW_NORMAL)
 
-    def _start_receiving(self):
-        namedWindow(Configurations.WINDOW_NAME, WINDOW_NORMAL)
-        while True:
-            encoded_image_string = self._queue.get()
+            while True:
+                action = self._socket.recv()
+                if action == b"0":
+                    imshow(Configurations.WINDOW_NAME,
+                           ImageOperations.decode(self._socket.recv_pyobj()))
+                    waitKey(1)
+                elif action == b"1":
+                    destroyAllWindows()
+                    break
+        except:
+            print("Displayer oprit")
 
-            try:
-                image = ImageOperations.decode(encoded_image_string)
-                self.show_image(image)
-            except:
-                pass
 
-    def stop(self):
-        Configurations.LOGGER.warning("CLIENT: Stopping Image Displayer...")
-        self._process.kill()
-        destroyAllWindows()
-
-    def show_image(self, image):
-        imshow(Configurations.WINDOW_NAME, image)
-        waitKey(1)
+if __name__ == "__main__":
+    if len(sys.argv) == 2:
+        ImageDisplayer(sys.argv[1]).start()
+    else:
+        print("No port given")

@@ -1,33 +1,31 @@
-import time
-
+import sys
 from Tools.screenshot_tool import ScreenshotTool
 from Commons.image_operations import ImageOperations
-from multiprocessing import Queue, Process
-from queue import Full
-from configurations import Configurations
+import zmq, zmq.sugar, signal
 
 
 class ImageGenerator:
-    def __init__(self, queue):
-        Configurations.LOGGER.warning("SERVER: Initialising Image Generator...")
-        self._queue: Queue = queue
+    def __init__(self, port):
         self._tool = ScreenshotTool()
-        self._process: Process = None
+        self._context = zmq.Context()
+        self._socket: zmq.sugar.Socket = self._context.socket(zmq.PUSH)
+        self._socket.connect(f"tcp://localhost:{port}")
 
     def start(self):
-        Configurations.LOGGER.warning("SERVER: Starting Image Generator...")
-        self._process = Process(target=self._start_sending)
-        self._process.start()
-
-    def _start_sending(self):
         while True:
-            image = self._tool.get_screenshot()
-            encoded_image = ImageOperations.encode(image)
-            try:
-                self._queue.put_nowait(encoded_image)
-            except Full:
-                pass
+            img = ImageOperations.encode(self._tool.get_screenshot())
+            self._socket.send_pyobj((0, img))
 
-    def stop(self):
-        Configurations.LOGGER.warning("SERVER: Stopping Image Generator...")
-        self._process.kill()
+    def clean(self):
+        self._context.destroy(linger=0)
+        sys.exit(0)
+
+
+if __name__ == "__main__":
+    signal.signal(signal.SIGINT, lambda x, y: ig.clean())
+    if len(sys.argv) == 2:
+        ig = ImageGenerator(sys.argv[1])
+        ig.start()
+    else:
+        print("No port found")
+

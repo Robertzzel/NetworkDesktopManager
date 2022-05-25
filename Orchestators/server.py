@@ -1,97 +1,107 @@
-from Producers.image_generator import ImageGenerator
-from Consumers.input_executor import InputExecutor
-from Producers.sound_generator import SoundGenerator
+import signal
 from Orchestators.orchestrator import Orchestrator
-from multiprocessing import Queue
-from socket import socket, AF_INET, SOCK_STREAM
-from configurations import Configurations
-from threading import Thread
+import zmq.asyncio, sys
+import zmq.sugar
+from subprocess import Popen
+from pathlib import Path
+from typing import *
+import asyncio
 
 
 class Server(Orchestrator):
     def __init__(self, image_address, input_address, sound_address):
-        Configurations.LOGGER.warning("SERVER: Initialising...")
+        self._process_pool: List[Popen] = []
+        self._running_tasks: asyncio.Future = None
+        self._context = zmq.asyncio.Context()
 
-        self._image_socket = socket(AF_INET, SOCK_STREAM)
-        self._image_socket.bind(image_address)
-        self._input_socket = socket(AF_INET, SOCK_STREAM)
-        self._input_socket.bind(input_address)
-        self._sound_socket = socket(AF_INET, SOCK_STREAM)
-        self._sound_socket.bind(sound_address)
+        self._socket_image_client: zmq.sugar.Socket = self._context.socket(zmq.PUSH)
+        self._socket_image_client.bind(f"tcp://{image_address}")
 
-        self._image_queue = Queue(4)
-        self._input_queue = Queue()
-        self._sound_queue = Queue()
+        self._socket_sound_client: zmq.sugar.Socket = self._context.socket(zmq.PUSH)
+        self._socket_sound_client.bind(f"tcp://{sound_address}")
 
-        self._input_receiver = InputExecutor(self._input_queue)
-        self._images_sender = ImageGenerator(self._image_queue)
-        self._sound_receiver = SoundGenerator(self._sound_queue)
+        self._socket_input_client: zmq.sugar.Socket = self._context.socket(zmq.PULL)
+        self._socket_input_client.bind(f"tcp://{input_address}")
 
-        self._running = True
-        self._connections = [self._sound_socket, self._image_socket, self._input_socket]
+        self._socket_img_snd: zmq.sugar.Socket = self._context.socket(zmq.PULL)
+        self._port_img_snd = self._socket_img_snd.bind_to_random_port(f"tcp://*")
+        self._socket_img_snd.RCVTIMEO = 10000
 
-    def start(self):
-        Configurations.LOGGER.warning("SERVER: Starting...")
-        self._connect()
+        self._socket_input: zmq.sugar.Socket = self._context.socket(zmq.PUSH)
+        self._port_input = self._socket_input.bind_to_random_port(f"tcp://*")
+        self._socket_input.RCVTIMEO = 10000
 
-        self._input_receiver.start()
-        self._sound_receiver.start()
-        self._images_sender.start()
+    async def start(self):
+        print("Starting server")
 
-    def _connect(self):
-        Thread(target=self._listen_for_image_connections).start()
-        Thread(target=self._listen_for_input_connection).start()
-        Thread(target=self._listen_for_sound_connection).start()
+        base_path = Path(__file__).parent.parent
+        process_paths = [base_path / "Producers" / "image_generator.py", base_path / "Producers" / "sound_generator.py", base_path / "Consumers" / "input_executor.py"]
+        process_port = [self._port_img_snd, self._port_img_snd, self._port_input]
 
-    def _listen_for_image_connections(self):
-        Configurations.LOGGER.warning("SERVER: Listening for image connections...")
-        self._image_socket.listen()
-        while self._running:
-            connection, _ = self._image_socket.accept()
-            Configurations.LOGGER.warning(f"SERVER: Connected to image client {_}")
-            Thread(target=self._handle_image_connection, args=(connection,)).start()
-            self._connections.append(connection)
+        for file, port in zip(process_paths, process_port):
+            self._process_pool.append(Popen([sys.executable, str(file), str(port)]))
 
-    def _handle_image_connection(self, connection):
-        while self._running:
-            img: bytes = self._image_queue.get()
-            self.send_message(connection, img, Configurations.LENGTH_MAX_SIZE)
+        self._running_tasks = asyncio.gather(
+            self._manage_sounds_images(),
+            self._manage_inputs()
+        )
 
-    def _listen_for_input_connection(self):
-        Configurations.LOGGER.warning("SERVER: Listening for input connections...")
-        self._input_socket.listen()
-        while self._running:
-            connection, _ = self._input_socket.accept()
-            Configurations.LOGGER.warning(f"SERVER: Connected to input client {_}")
-            Thread(target=self._handle_input_connection, args=(connection,)).start()
-            self._connections.append(connection)
+        try:
+            await self._running_tasks
+        except asyncio.CancelledError:
+            pass
+        await self.cancel_processes()
 
-    def _handle_input_connection(self, connection):
-        while self._running:
-            input_event = self.receive_message(connection, Configurations.INPUT_MAX_SIZE).decode()
-            self._input_queue.put(input_event)
+    async def _manage_sounds_images(self):
+        while True:
+            try:
+                img_or_sound = await self._socket_img_snd.recv_pyobj()
+            except Exception as ex:
+                print(ex)
+                break
+            if img_or_sound[0] == 0:
+                self._socket_image_client.send_pyobj(img_or_sound[1])
+            elif img_or_sound[0] == 1:
+                self._socket_sound_client.send_pyobj(img_or_sound[1])
 
-    def _listen_for_sound_connection(self):
-        Configurations.LOGGER.warning("SERVER: Listening for sound connections...")
-        self._sound_socket.listen()
-        while self._running:
-            connection, _ = self._sound_socket.accept()
-            Configurations.LOGGER.warning(f"SERVER: Connected to sound client {_}")
-            Thread(target=self._handle_sound_connection, args=(connection,)).start()
-            self._connections.append(connection)
+    async def _manage_inputs(self):
+        while True:
+            try:
+                action = await self._socket_input_client.recv_string()
+            except Exception as ex:
+                print(ex)
+                break
+            self._socket_input.send_string(action)
 
-    def _handle_sound_connection(self, connection):
-        while self._running:
-            sound_event = self._sound_queue.get()
-            self.send_message(connection, sound_event, Configurations.INPUT_MAX_SIZE)
+    async def cancel_tasks(self):
+        if self._running_tasks is not None and not self._running_tasks.done():
+            self._running_tasks.cancel()
+            try:
+                await self._running_tasks
+            except asyncio.CancelledError:
+                pass
 
-    def stop(self):
-        Configurations.LOGGER.warning("SERVER: Stopping...")
-        self._running = False
-        map(lambda conn: conn.close(), self._connections)
-        self._images_sender.stop()
-        self._input_receiver.stop()
-        self._sound_receiver.stop()
-        self._input_receiver.stop()
-        self._images_sender.stop()
-        self._sound_receiver.stop()
+    async def cancel_processes(self):
+        for process in self._process_pool:
+            if process.poll() is None:
+                process.send_signal(signal.SIGINT)
+                await asyncio.sleep(0.1)
+                if process.poll() is None:
+                    process.terminate()
+
+        self._context.destroy(linger=0)
+
+
+if __name__ == "__main__":
+    loop = asyncio.new_event_loop()
+    loop.add_signal_handler(signal.SIGINT, lambda: loop.create_task(server.cancel_tasks()))
+
+    if len(sys.argv) == 4:
+        server = Server(sys.argv[1], sys.argv[2], sys.argv[3])
+        server_future = loop.create_task(server.start())
+        loop.run_until_complete(server_future)
+    else:
+        print("Input error")
+
+
+

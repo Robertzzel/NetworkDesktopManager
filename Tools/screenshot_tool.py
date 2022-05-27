@@ -5,8 +5,6 @@ from PIL import Image, ImageQt
 from pyautogui import position
 from numpy import array, ndarray
 from configurations import Configurations
-from mss import mss
-from platform import platform
 from PyQt5.QtGui import QPixmap
 
 
@@ -20,7 +18,6 @@ class ScreenshotTool:
             "width": self._screen_shape[1],
             "height": self._screen_shape[0]
         }
-        self._is_windows = platform().startswith("Windows")
 
     def get_screenshot(self) -> ndarray:
         cursor_x, cursor_y = position()
@@ -38,11 +35,7 @@ class ScreenshotTool:
         return cv2.resize(image, (800, 600), interpolation=cv2.INTER_AREA)
 
     def _get_screenshot_image(self):
-        if self._is_windows:
-            with mss() as sct:
-                return cvtColor(array(sct.grab(self._monitor)), COLOR_BGRA2BGR)
-        else:
-            return cvtColor(array(grab()), COLOR_RGB2BGR)
+        return cvtColor(array(grab()), COLOR_RGB2BGR)
 
     def get_screen_shape(self):
         return self._screen_shape

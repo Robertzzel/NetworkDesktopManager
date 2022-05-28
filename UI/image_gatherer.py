@@ -3,6 +3,7 @@ from subprocess import Popen
 from PyQt5.QtCore import QRunnable
 import sys, zmq, zmq.sugar, signal
 from worker_signals import WorkerSignals
+from configurations import Configurations
 
 
 class ImageGatherer(QRunnable):
@@ -35,7 +36,7 @@ class ImageGatherer(QRunnable):
                                             f"{self.address}:5101",
                                             f"{self.address}:5102",
                                             f"{self.address}:5103",
-                                            f"{self.address}:{ui_port}"])
+                                            f"{Configurations.CURRENT_IP}:{ui_port}"])
 
     def stop(self):
         self.running = False

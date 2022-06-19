@@ -1,4 +1,5 @@
-import sys
+import sys, pathlib
+sys.path.append(str(pathlib.Path(__file__).absolute().parent.parent))
 import sounddevice as sd
 from configurations import Configurations
 import zmq, signal

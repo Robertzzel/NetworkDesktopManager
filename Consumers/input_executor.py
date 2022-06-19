@@ -1,9 +1,8 @@
-import signal
+import signal, sys, pathlib, zmq, zmq.sugar
+sys.path.append(str(pathlib.Path(__file__).absolute().parent.parent))
 from Tools.mouse_tool import MouseTool
 from Tools.keyboard_tool import KeyboardTool
 from Commons.input_actions import InputActions
-import zmq, sys
-import zmq.sugar
 
 
 class InputExecutor:

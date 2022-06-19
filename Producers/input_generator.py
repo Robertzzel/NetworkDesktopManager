@@ -1,5 +1,5 @@
-import signal, os
-import zmq, sys, zmq.sugar
+import signal, os, zmq, sys, zmq.sugar, pathlib
+sys.path.append(str(pathlib.Path(__file__).absolute().parent.parent))
 from Tools.keyboard_tool import KeyboardTool, Key
 from Commons.input_actions import InputActions
 from threading import Thread

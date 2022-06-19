@@ -1,8 +1,10 @@
 package pathlib
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 )
 
@@ -25,7 +27,14 @@ func (p Path) ToString() string {
 	return p.Name
 }
 
+func (p Path) FileExists() bool {
+	if _, err := os.Stat(p.Name); errors.Is(err, os.ErrNotExist) {
+		return false
+	}
+	return true
+}
+
 func GetCurrentPath() Path {
-	currentPath, _ := os.Getwd()
-	return Path{Name: currentPath}
+	_, fileName, _, _ := runtime.Caller(1)
+	return Path{Name: fileName}
 }

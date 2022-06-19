@@ -12,7 +12,7 @@ import (
 	zmq "github.com/pebbe/zmq4"
 )
 
-var EnvInterpretorPath = pathlib.GetCurrentPath().GetParent().GetParent().Add("venv").Add("bin").Add("python3")
+var EnvInterpretorPath = pathlib.GetCurrentPath().GetParent().GetParent().GetParent().Add("venv").Add("bin").Add("python3")
 
 type Client struct {
 	SocketImageServer    *zmq.Socket
@@ -33,14 +33,15 @@ func startPythonProcess(argv []string) *os.Process {
 
 func NewClient(imageAddress string, audioAddress string, inputAddress string, imageDisplayerAddress string) Client {
 	context, _ := zmq.NewContext()
-	socketImageServer, _ := context.NewSocket(zmq.PUSH)
-	socketAudioServer, _ := context.NewSocket(zmq.PUSH)
-	socketInputServer, _ := context.NewSocket(zmq.PULL)
+	socketImageServer, _ := context.NewSocket(zmq.PULL)
+	socketAudioServer, _ := context.NewSocket(zmq.PULL)
+	socketInputServer, _ := context.NewSocket(zmq.PUSH)
 	socketImageDisplayer, _ := context.NewSocket(zmq.PAIR)
 	socketSoundPlayer, _ := context.NewSocket(zmq.PUSH)
 	socketInputGenerator, _ := context.NewSocket(zmq.PULL)
 
 	socketImageServer.Connect(fmt.Sprintf("tcp://%s", imageAddress))
+	fmt.Printf("client connected to %s", imageAddress)
 	socketAudioServer.Connect(fmt.Sprintf("tcp://%s", audioAddress))
 	socketInputServer.Connect(fmt.Sprintf("tcp://%s", inputAddress))
 	socketImageDisplayer.Connect(fmt.Sprintf("tcp://%s", imageDisplayerAddress))
@@ -59,7 +60,7 @@ func NewClient(imageAddress string, audioAddress string, inputAddress string, im
 }
 
 func (cl *Client) Start() {
-	basePath := pathlib.GetCurrentPath().GetParent().GetParent()
+	basePath := pathlib.GetCurrentPath().GetParent().GetParent().GetParent()
 	soundPlayerPath := basePath.Add("Consumers").Add("sound_player.py").ToString()
 	inputGeneratorPath := basePath.Add("Producers").Add("input_generator.py").ToString()
 
@@ -86,6 +87,8 @@ func (cl *Client) routeMessages() {
 		for _, socket := range sockets {
 			s := socket.Socket
 			msg, _ := s.Recv(0)
+
+			fmt.Printf("primt mesaj cu lungimea %d", len(msg))
 
 			switch s {
 			case cl.SocketImageServer:

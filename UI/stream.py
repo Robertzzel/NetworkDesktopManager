@@ -12,13 +12,11 @@ class Stream(QRunnable):
     def __init__(self):
         super().__init__()
         self.process: Popen = None
-        self.server_path = str(Path(__file__).parent.parent / "Orchestators" / "server.py")
+        self.server_path = str(Path(__file__).parent.parent / "Orchestators" / "server" / "init")
 
     def run(self):
-        self.process = Popen([sys.executable, self.server_path,
-                                            f"{Configurations.CURRENT_IP}:5101",
-                                            f"{Configurations.CURRENT_IP}:5102",
-                                            f"{Configurations.CURRENT_IP}:5103"])
+        self.process = Popen([self.server_path, f"{Configurations.CURRENT_IP}:5101",
+                              f"{Configurations.CURRENT_IP}:5102", f"{Configurations.CURRENT_IP}:5103"])
 
     def stop(self):
         if self.process is not None:

@@ -1,7 +1,8 @@
+import zmq, sys, pathlib
+sys.path.append(str(pathlib.Path(__file__).absolute().parent.parent))
 from Commons.image_operations import ImageOperations
 from cv2 import namedWindow, WINDOW_NORMAL, imshow, waitKey, destroyAllWindows
 from configurations import Configurations
-import zmq, sys
 
 
 class ImageDisplayer:

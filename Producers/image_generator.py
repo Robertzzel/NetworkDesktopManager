@@ -1,7 +1,7 @@
-import sys
+import pathlib, sys, zmq, zmq.sugar, signal
+sys.path.append(str(pathlib.Path(__file__).absolute().parent.parent))
 from Tools.screenshot_tool import ScreenshotTool
 from Commons.image_operations import ImageOperations
-import zmq, zmq.sugar, signal
 
 
 class ImageGenerator:
@@ -13,8 +13,7 @@ class ImageGenerator:
 
     def start(self):
         while True:
-            img = ImageOperations.encode(self._tool.get_screenshot())
-            self._socket.send_pyobj((0, img))
+            self._socket.send_pyobj(ImageOperations.encode(self._tool.get_screenshot()))
 
     def clean(self):
         self._context.destroy(linger=0)

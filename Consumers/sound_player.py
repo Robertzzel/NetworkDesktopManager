@@ -1,9 +1,8 @@
-import signal
-
+import signal, sys, pathlib, zmq, zmq.sugar
+sys.path.append(str(pathlib.Path(__file__).absolute().parent.parent))
 import sounddevice as sd
 from configurations import Configurations
 from numpy import frombuffer, float32
-import zmq, zmq.sugar, sys
 
 
 class SoundPlayer:

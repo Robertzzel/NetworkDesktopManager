@@ -12,7 +12,7 @@ import (
 	zmq "github.com/pebbe/zmq4"
 )
 
-var EnvInterpretorPath = pathlib.GetCurrentPath().GetParent().Add("venv").Add("bin").Add("python3")
+var EnvInterpretorPath = pathlib.GetCurrentPath().GetParent().GetParent().Add("venv").Add("bin").Add("python3")
 
 type ApplicationServer struct {
 	SocketImageClient    *zmq.Socket
@@ -25,29 +25,29 @@ type ApplicationServer struct {
 	isRunning            bool
 }
 
-func NewServer(clientImageAddress string, clientAudioAddress string, clientInputAddress string) ApplicationServer {
+func NewServer(imageAddress string, audioAddress string, inputAddress string) ApplicationServer {
 	context, _ := zmq.NewContext()
-	SocketImageClient, _ := context.NewSocket(zmq.PUSH)
-	SocketAudioClient, _ := context.NewSocket(zmq.PUSH)
-	SocketInputClient, _ := context.NewSocket(zmq.PULL)
-	SocketImageGenerator, _ := context.NewSocket(zmq.PULL)
-	SocketSoundGenerator, _ := context.NewSocket(zmq.PULL)
-	SocketInputExecutor, _ := context.NewSocket(zmq.PUSH)
+	socketImageClient, _ := context.NewSocket(zmq.PUSH)
+	socketAudioClient, _ := context.NewSocket(zmq.PUSH)
+	socketInputClient, _ := context.NewSocket(zmq.PULL)
+	socketImageGenerator, _ := context.NewSocket(zmq.PULL)
+	socketSoundGenerator, _ := context.NewSocket(zmq.PULL)
+	socketInputExecutor, _ := context.NewSocket(zmq.PUSH)
 
-	SocketImageClient.Bind(fmt.Sprintf("tcp://%s", clientImageAddress))
-	SocketAudioClient.Bind(fmt.Sprintf("tcp://%s", clientAudioAddress))
-	SocketInputClient.Bind(fmt.Sprintf("tcp://%s", clientInputAddress))
-	SocketImageGenerator.Bind("tcp://*:5111")
-	SocketSoundGenerator.Bind("tcp://*:5222")
-	SocketInputExecutor.Bind("tcp://*:5333")
+	socketImageClient.Bind(fmt.Sprintf("tcp://%s", imageAddress))
+	socketAudioClient.Bind(fmt.Sprintf("tcp://%s", audioAddress))
+	socketInputClient.Bind(fmt.Sprintf("tcp://%s", inputAddress))
+	socketImageGenerator.Bind("tcp://*:5111")
+	socketSoundGenerator.Bind("tcp://*:5222")
+	socketInputExecutor.Bind("tcp://*:5333")
 
 	return ApplicationServer{
-		SocketImageClient:    SocketImageClient,
-		SocketAudioClient:    SocketAudioClient,
-		SocketInputClient:    SocketInputClient,
-		SocketImageGenerator: SocketImageGenerator,
-		SocketSoundGenerator: SocketSoundGenerator,
-		SocketInputExecutor:  SocketInputExecutor,
+		SocketImageClient:    socketImageClient,
+		SocketAudioClient:    socketAudioClient,
+		SocketInputClient:    socketInputClient,
+		SocketImageGenerator: socketImageGenerator,
+		SocketSoundGenerator: socketSoundGenerator,
+		SocketInputExecutor:  socketInputExecutor,
 		isRunning:            false,
 	}
 }
@@ -59,7 +59,7 @@ func startPythonProcess(argv []string) *os.Process {
 }
 
 func (sv *ApplicationServer) Start() {
-	basePath := pathlib.GetCurrentPath().GetParent()
+	basePath := pathlib.GetCurrentPath().GetParent().GetParent()
 	imageGeneratorPath := basePath.Add("Producers").Add("image_generator.py").ToString()
 	soundGeneratorPath := basePath.Add("Producers").Add("sound_generator.py").ToString()
 	inputExecutorPath := basePath.Add("Consumers").Add("input_executor.py").ToString()
@@ -78,7 +78,6 @@ func (sv *ApplicationServer) routeMessages() {
 	poller.Add(sv.SocketSoundGenerator, zmq.POLLIN)
 	poller.Add(sv.SocketInputClient, zmq.POLLIN)
 
-	fmt.Print(os.Getpid())
 	for sv.isRunning {
 		sockets, err := poller.Poll(time.Second)
 		if err != nil {
@@ -118,7 +117,11 @@ func (sv *ApplicationServer) Stop() {
 }
 
 func main() {
-	sv := NewServer("*:5001", "*:5002", "*:5003")
+	if len(os.Args) != 4 {
+		os.Exit(1)
+	}
+
+	sv := NewServer(os.Args[1], os.Args[2], os.Args[3])
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT)

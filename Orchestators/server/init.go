@@ -1,13 +1,15 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"os/signal"
 	"syscall"
-	"time"
 
+	"example.com/orchestrators/communication"
 	"example.com/orchestrators/pathlib"
 
 	zmq "github.com/pebbe/zmq4"
@@ -15,42 +17,99 @@ import (
 
 var EnvInterpretorPath = pathlib.GetCurrentPath().GetParent().GetParent().GetParent().Add("venv").Add("bin").Add("python3")
 
+const padding = 10
+
 type ApplicationServer struct {
-	SocketImageClient    *zmq.Socket
-	SocketAudioClient    *zmq.Socket
-	SocketInputClient    *zmq.Socket
-	SocketImageGenerator *zmq.Socket
-	SocketSoundGenerator *zmq.Socket
-	SocketInputExecutor  *zmq.Socket
-	Processes            []*os.Process
+	listeningAddress     *net.TCPAddr
+	listener             *net.TCPListener
+	loggerFile           *os.File
+	socketImageGenerator *zmq.Socket
+	socketSoundGenerator *zmq.Socket
+	socketInputExecutor  *zmq.Socket
+	processes            []*os.Process
+	clientConnection     communication.TCPConnection
 	isRunning            bool
 }
 
-func NewServer(imageAddress string, audioAddress string, inputAddress string) ApplicationServer {
+func NewServer(address string, loggerFile *os.File) (ApplicationServer, error) {
 	context, _ := zmq.NewContext()
-	SocketImageClient, _ := context.NewSocket(zmq.PUSH)
-	SocketAudioClient, _ := context.NewSocket(zmq.PUSH)
-	SocketInputClient, _ := context.NewSocket(zmq.PULL)
-	SocketImageGenerator, _ := context.NewSocket(zmq.PULL)
-	SocketSoundGenerator, _ := context.NewSocket(zmq.PULL)
-	SocketInputExecutor, _ := context.NewSocket(zmq.PUSH)
+	socketImageGenerator, _ := context.NewSocket(zmq.PULL)
+	socketSoundGenerator, _ := context.NewSocket(zmq.PULL)
+	socketInputExecutor, _ := context.NewSocket(zmq.PUSH)
 
-	SocketImageClient.Bind(fmt.Sprintf("tcp://%s", imageAddress))
-	SocketAudioClient.Bind(fmt.Sprintf("tcp://%s", audioAddress))
-	SocketInputClient.Bind(fmt.Sprintf("tcp://%s", inputAddress))
-	SocketImageGenerator.Bind("tcp://*:5111")
-	SocketSoundGenerator.Bind("tcp://*:5222")
-	SocketInputExecutor.Bind("tcp://*:5333")
+	listeningAddress, err := net.ResolveTCPAddr("tcp", address)
+	if err != nil {
+		loggerFile.Write([]byte(fmt.Sprintf("Error while getting the address %s\n", err)))
+		return ApplicationServer{}, err
+	}
 
 	return ApplicationServer{
-		SocketImageClient:    SocketImageClient,
-		SocketAudioClient:    SocketAudioClient,
-		SocketInputClient:    SocketInputClient,
-		SocketImageGenerator: SocketImageGenerator,
-		SocketSoundGenerator: SocketSoundGenerator,
-		SocketInputExecutor:  SocketInputExecutor,
+		listener:             nil,
+		clientConnection:     communication.TCPConnection{},
+		listeningAddress:     listeningAddress,
+		loggerFile:           loggerFile,
+		socketImageGenerator: socketImageGenerator,
+		socketSoundGenerator: socketSoundGenerator,
+		socketInputExecutor:  socketInputExecutor,
 		isRunning:            false,
+	}, nil
+}
+
+func (sv *ApplicationServer) Start() {
+	sv.isRunning = true
+
+	sv.socketImageGenerator.Bind("tcp://*:5111")
+	sv.socketSoundGenerator.Bind("tcp://*:5222")
+	sv.socketInputExecutor.Bind("tcp://*:5333")
+
+	var err error
+	sv.listener, err = net.ListenTCP("tcp", sv.listeningAddress)
+	if err != nil {
+		sv.loggerFile.Write([]byte(fmt.Sprintf("Error while listening %s\n", err)))
+		sv.Stop()
+		return
 	}
+	sv.loggerFile.Write([]byte(fmt.Sprintf("Listening to %s:%d...\n", sv.listeningAddress.IP, sv.listeningAddress.Port)))
+
+	conn, err := sv.listener.Accept()
+	if err != nil {
+		sv.loggerFile.Write([]byte("Server oprit din ascultat\n"))
+		sv.Stop()
+		return
+	}
+	sv.loggerFile.Write([]byte("Client connected...\n"))
+
+	sv.clientConnection = communication.TCPConnection{conn}
+
+	sv.loggerFile.Write([]byte("Opening processes...\n"))
+	if err := sv.startProcesses(); err != nil {
+		sv.loggerFile.Write([]byte(fmt.Sprintln(err)))
+		sv.Stop()
+		return
+	}
+
+	sv.loggerFile.Write([]byte("Routing messages...\n"))
+	sv.routeMessages()
+}
+
+func (sv *ApplicationServer) startProcesses() error {
+	basePath := pathlib.GetCurrentPath().GetParent().GetParent().GetParent()
+	imageGeneratorPath := basePath.Add("Producers").Add("image_generator.py")
+	soundGeneratorPath := basePath.Add("Producers").Add("sound_generator.py")
+	inputExecutorPath := basePath.Add("Consumers").Add("input_executor.py")
+
+	if !EnvInterpretorPath.FileExists() {
+		return errors.New("enviroment path does not exist")
+	}
+	if !imageGeneratorPath.FileExists() || !soundGeneratorPath.FileExists() || !inputExecutorPath.FileExists() {
+		return errors.New("processes cannot be open, one of the file does not exists")
+	}
+
+	sv.processes = append(sv.processes, startPythonProcess([]string{imageGeneratorPath.ToString(), "5111"}))
+	sv.processes = append(sv.processes, startPythonProcess([]string{soundGeneratorPath.ToString(), "5222"}))
+	sv.processes = append(sv.processes, startPythonProcess([]string{inputExecutorPath.ToString(), "5333"}))
+
+	return nil
 }
 
 func startPythonProcess(argv []string) *os.Process {
@@ -59,78 +118,96 @@ func startPythonProcess(argv []string) *os.Process {
 	return cmd.Process
 }
 
-func (sv *ApplicationServer) Start() {
-	basePath := pathlib.GetCurrentPath().GetParent().GetParent().GetParent()
-	imageGeneratorPath := basePath.Add("Producers").Add("image_generator.py").ToString()
-	soundGeneratorPath := basePath.Add("Producers").Add("sound_generator.py").ToString()
-	inputExecutorPath := basePath.Add("Consumers").Add("input_executor.py").ToString()
-
-	sv.Processes = append(sv.Processes, startPythonProcess([]string{imageGeneratorPath, "5111"}))
-	sv.Processes = append(sv.Processes, startPythonProcess([]string{soundGeneratorPath, "5222"}))
-	sv.Processes = append(sv.Processes, startPythonProcess([]string{inputExecutorPath, "5333"}))
-
-	sv.isRunning = true
-	sv.routeMessages()
-}
-
 func (sv *ApplicationServer) routeMessages() {
+	defer sv.Stop()
+	go sv.handleClientInputs()
+
 	poller := zmq.NewPoller()
-	poller.Add(sv.SocketImageGenerator, zmq.POLLIN)
-	poller.Add(sv.SocketSoundGenerator, zmq.POLLIN)
-	//poller.Add(sv.SocketInputClient, zmq.POLLIN)
+	poller.Add(sv.socketImageGenerator, zmq.POLLIN)
+	poller.Add(sv.socketSoundGenerator, zmq.POLLIN)
 
 	for sv.isRunning {
-		sockets, err := poller.Poll(time.Second)
+		sockets, err := poller.Poll(-1)
 		if err != nil {
-			fmt.Println(err)
+			sv.loggerFile.Write([]byte(fmt.Sprintln("Poller gata ", err)))
 			break
 		}
 
 		for _, socket := range sockets {
 			s := socket.Socket
-			msg, _ := s.Recv(0)
+			msg, _ := s.RecvBytes(0)
 
 			switch s {
-			case sv.SocketImageGenerator:
-				sv.SocketImageClient.Send(msg, zmq.DONTWAIT)
-			case sv.SocketSoundGenerator:
-				sv.SocketAudioClient.Send(msg, zmq.DONTWAIT)
-			case sv.SocketInputClient:
-				sv.SocketInputExecutor.Send(msg, zmq.DONTWAIT)
+			case sv.socketImageGenerator:
+				msg := append([]byte("0"), msg...)
+				sv.clientConnection.Send(msg, padding)
+
+			case sv.socketSoundGenerator:
+				msg := append([]byte("1"), msg...)
+				sv.clientConnection.Send(msg, padding)
 			}
 		}
 	}
 }
 
+func (sv *ApplicationServer) handleClientInputs() {
+	for sv.isRunning {
+		sv.loggerFile.Write([]byte(fmt.Sprintf("astept read la %s\n", sv.clientConnection.LocalAddr())))
+		command, err := sv.clientConnection.Receive(padding)
+		if err != nil {
+			sv.loggerFile.Write([]byte(fmt.Sprintln("client inchis, nu mai pot primi comenzi ", err)))
+			break
+		}
+		sv.loggerFile.Write([]byte("inout read\n"))
+
+		sv.socketInputExecutor.Send(string(command), zmq.DONTWAIT)
+	}
+}
+
 func (sv *ApplicationServer) Stop() {
 	sv.isRunning = false
-	for _, process := range sv.Processes {
+
+	for _, process := range sv.processes {
 		process.Signal(syscall.SIGINT)
-		fmt.Printf("Inchis %d", process.Pid)
+		sv.loggerFile.Write([]byte(fmt.Sprintf("Inchis %d\n", process.Pid)))
 	}
 
-	sv.SocketImageClient.Close()
-	sv.SocketAudioClient.Close()
-	sv.SocketInputClient.Close()
-	sv.SocketImageGenerator.Close()
-	sv.SocketSoundGenerator.Close()
-	sv.SocketInputExecutor.Close()
+	sv.socketImageGenerator.Close()
+	sv.socketSoundGenerator.Close()
+	sv.socketInputExecutor.Close()
+
+	if sv.clientConnection != (communication.TCPConnection{}) {
+		sv.clientConnection.Close()
+	}
+	if sv.listener != nil {
+		sv.listener.Close()
+	}
+
+	sv.loggerFile.Write([]byte("Server closed...\n"))
 }
 
 func main() {
-	if len(os.Args) != 4 {
+	file, _ := os.Create("/home/robert/Desktop/serverlog.txt")
+
+	if len(os.Args) != 2 {
+		file.Write([]byte(fmt.Sprintln("Nu am destui parametri")))
 		os.Exit(1)
 	}
 
-	sv := NewServer(os.Args[1], os.Args[2], os.Args[3])
+	sv, err := NewServer(os.Args[1], file)
+	if err != nil {
+		file.Write([]byte(fmt.Sprintf("Serverul nu s-a activat %s\n", err)))
+		os.Exit(1)
+	}
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT)
 	go func() {
 		<-sig
-		fmt.Println("Se intrerupe")
+		file.Write([]byte("Stopping...\n"))
 		sv.Stop()
 	}()
 
 	sv.Start()
+	file.Write([]byte("end\n"))
 }

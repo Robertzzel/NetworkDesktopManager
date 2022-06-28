@@ -33,9 +33,7 @@ class ImageGatherer(QRunnable):
     def start_client(self, ui_port):
         client_path = str(Path(__file__).parent.parent / "Orchestators" / "client" / "init")
         self.orchestrator_process = Popen([f"{client_path}",
-                                           f"{self.address}:5101",
-                                           f"{self.address}:5102",
-                                           f"{self.address}:5103",
+                                           f"{self.address}:5109",
                                            f"{Configurations.CURRENT_IP}:{ui_port}"])
 
     def stop(self):

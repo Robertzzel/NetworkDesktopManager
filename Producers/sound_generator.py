@@ -19,7 +19,7 @@ class SoundGenerator:
                          samplerate=Configurations.SOUND_FRAMES,
                          channels=Configurations.SOUND_CHANNELS, blocking=True)
 
-            self._socket.send_pyobj((1, rec))
+            self._socket.send_pyobj(rec)
 
     def _get_device_index(self):
         for index, dev in enumerate(sd.query_devices()):

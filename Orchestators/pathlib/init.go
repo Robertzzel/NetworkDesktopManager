@@ -12,6 +12,11 @@ type Path struct {
 	Name string
 }
 
+func GetCurrentPath() Path {
+	_, fileName, _, _ := runtime.Caller(1)
+	return Path{Name: fileName}
+}
+
 func (p Path) GetParent() Path {
 	parent := strings.Split(p.Name, "/")
 	p.Name = strings.Join(parent[:len(parent)-1], "/")
@@ -32,9 +37,4 @@ func (p Path) FileExists() bool {
 		return false
 	}
 	return true
-}
-
-func GetCurrentPath() Path {
-	_, fileName, _, _ := runtime.Caller(1)
-	return Path{Name: fileName}
 }

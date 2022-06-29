@@ -39,7 +39,6 @@ func NewServer(address string, loggerFile *os.File) (ApplicationServer, error) {
 
 	listeningAddress, err := net.ResolveTCPAddr("tcp", address)
 	if err != nil {
-		loggerFile.Write([]byte(fmt.Sprintf("Error while getting the address %s\n", err)))
 		return ApplicationServer{}, err
 	}
 
@@ -55,41 +54,48 @@ func NewServer(address string, loggerFile *os.File) (ApplicationServer, error) {
 	}, nil
 }
 
-func (sv *ApplicationServer) Start() {
+func (sv *ApplicationServer) Start() error {
+	defer sv.Stop()
 	sv.isRunning = true
 
-	sv.socketImageGenerator.Bind("tcp://*:5111")
-	sv.socketSoundGenerator.Bind("tcp://*:5222")
-	sv.socketInputExecutor.Bind("tcp://*:5333")
+	if err := sv.socketImageGenerator.Bind("tcp://*:5111"); err != nil {
+		return err
+	}
+	if err := sv.socketSoundGenerator.Bind("tcp://*:5222"); err != nil {
+		return err
+	}
+	if err := sv.socketInputExecutor.Bind("tcp://*:5333"); err != nil {
+		return err
+	}
 
 	var err error
 	sv.listener, err = net.ListenTCP("tcp", sv.listeningAddress)
 	if err != nil {
-		sv.loggerFile.Write([]byte(fmt.Sprintf("Error while listening %s\n", err)))
-		sv.Stop()
-		return
+		sv.log(fmt.Sprintf("Error while listening %s\n", err))
+		return err
 	}
-	sv.loggerFile.Write([]byte(fmt.Sprintf("Listening to %s:%d...\n", sv.listeningAddress.IP, sv.listeningAddress.Port)))
+	sv.log(fmt.Sprintf("Listening to %s:%d...\n", sv.listeningAddress.IP, sv.listeningAddress.Port))
 
 	conn, err := sv.listener.Accept()
 	if err != nil {
-		sv.loggerFile.Write([]byte("Server oprit din ascultat\n"))
-		sv.Stop()
-		return
+		sv.log("Server oprit din ascultat\n")
+		return err
 	}
-	sv.loggerFile.Write([]byte("Client connected...\n"))
+	sv.clientConnection = communication.TCPConnection{Conn: conn}
+	sv.log("Client connected...\n")
 
-	sv.clientConnection = communication.TCPConnection{conn}
-
-	sv.loggerFile.Write([]byte("Opening processes...\n"))
+	sv.log("Opening processes...\n")
 	if err := sv.startProcesses(); err != nil {
-		sv.loggerFile.Write([]byte(fmt.Sprintln(err)))
-		sv.Stop()
-		return
+		sv.log(fmt.Sprintln(err))
+		return err
 	}
 
-	sv.loggerFile.Write([]byte("Routing messages...\n"))
-	sv.routeMessages()
+	sv.log("Routing messages...\n")
+	if err := sv.routeMessages(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (sv *ApplicationServer) startProcesses() error {
@@ -105,22 +111,36 @@ func (sv *ApplicationServer) startProcesses() error {
 		return errors.New("processes cannot be open, one of the file does not exists")
 	}
 
-	sv.processes = append(sv.processes, startPythonProcess([]string{imageGeneratorPath.ToString(), "5111"}))
-	sv.processes = append(sv.processes, startPythonProcess([]string{soundGeneratorPath.ToString(), "5222"}))
-	sv.processes = append(sv.processes, startPythonProcess([]string{inputExecutorPath.ToString(), "5333"}))
+	imageGeneratorProcess, err := startPythonProcess([]string{imageGeneratorPath.ToString(), "5111"})
+	if err != nil {
+		return err
+	}
+	audioGeneratorProcess, err := startPythonProcess([]string{soundGeneratorPath.ToString(), "5222"})
+	if err != nil {
+		return err
+	}
+	inputExecutorProcess, err := startPythonProcess([]string{inputExecutorPath.ToString(), "5333"})
+	if err != nil {
+		return err
+	}
+
+	sv.processes = append(sv.processes, imageGeneratorProcess, audioGeneratorProcess, inputExecutorProcess)
 
 	return nil
 }
 
-func startPythonProcess(argv []string) *os.Process {
+func startPythonProcess(argv []string) (*os.Process, error) {
 	cmd := exec.Command(EnvInterpretorPath.ToString(), argv...)
-	cmd.Start()
-	return cmd.Process
+
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+	return cmd.Process, nil
 }
 
-func (sv *ApplicationServer) routeMessages() {
-	defer sv.Stop()
-	go sv.handleClientInputs()
+func (sv *ApplicationServer) routeMessages() error {
+	errorClientInputs := make(chan error)
+	go sv.handleClientInputs(errorClientInputs)
 
 	poller := zmq.NewPoller()
 	poller.Add(sv.socketImageGenerator, zmq.POLLIN)
@@ -129,8 +149,8 @@ func (sv *ApplicationServer) routeMessages() {
 	for sv.isRunning {
 		sockets, err := poller.Poll(-1)
 		if err != nil {
-			sv.loggerFile.Write([]byte(fmt.Sprintln("Poller gata ", err)))
-			break
+			sv.log(fmt.Sprintln("Poller oprit, ", err))
+			return err
 		}
 
 		for _, socket := range sockets {
@@ -148,34 +168,42 @@ func (sv *ApplicationServer) routeMessages() {
 			}
 		}
 	}
+
+	return <-errorClientInputs
 }
 
-func (sv *ApplicationServer) handleClientInputs() {
+func (sv *ApplicationServer) handleClientInputs(output chan error) {
 	for sv.isRunning {
-		sv.loggerFile.Write([]byte(fmt.Sprintf("astept read la %s\n", sv.clientConnection.LocalAddr())))
 		command, err := sv.clientConnection.Receive(padding)
 		if err != nil {
-			sv.loggerFile.Write([]byte(fmt.Sprintln("client inchis, nu mai pot primi comenzi ", err)))
-			break
+			sv.log(fmt.Sprintln("client inchis, nu mai pot primi comenzi ", err))
+			output <- err
+			return
 		}
-		sv.loggerFile.Write([]byte("inout read\n"))
 
 		sv.socketInputExecutor.Send(string(command), zmq.DONTWAIT)
 	}
+	output <- nil
 }
 
 func (sv *ApplicationServer) Stop() {
 	sv.isRunning = false
 
+	sv.log("Closing processes...\n")
 	for _, process := range sv.processes {
-		process.Signal(syscall.SIGINT)
-		sv.loggerFile.Write([]byte(fmt.Sprintf("Inchis %d\n", process.Pid)))
+		if err := process.Signal(syscall.SIGINT); err != nil {
+			sv.log(fmt.Sprintf("Procesul %d nu a putut fi inchis\n", process.Pid))
+		} else {
+			sv.log(fmt.Sprintf("Inchis %d\n", process.Pid))
+		}
 	}
 
+	sv.log("Closing ZMQ sockets...\n")
 	sv.socketImageGenerator.Close()
 	sv.socketSoundGenerator.Close()
 	sv.socketInputExecutor.Close()
 
+	sv.log("CLosing listener and client conn...\n")
 	if sv.clientConnection != (communication.TCPConnection{}) {
 		sv.clientConnection.Close()
 	}
@@ -183,7 +211,11 @@ func (sv *ApplicationServer) Stop() {
 		sv.listener.Close()
 	}
 
-	sv.loggerFile.Write([]byte("Server closed...\n"))
+	sv.log("Server closed...\n")
+}
+
+func (sv *ApplicationServer) log(msg string) {
+	sv.loggerFile.Write([]byte(msg))
 }
 
 func main() {
@@ -196,7 +228,7 @@ func main() {
 
 	sv, err := NewServer(os.Args[1], file)
 	if err != nil {
-		file.Write([]byte(fmt.Sprintf("Serverul nu s-a activat %s\n", err)))
+		file.Write([]byte(fmt.Sprintf("Eroate la creare server %s\n", err)))
 		os.Exit(1)
 	}
 
@@ -208,6 +240,7 @@ func main() {
 		sv.Stop()
 	}()
 
-	sv.Start()
-	file.Write([]byte("end\n"))
+	if err := sv.Start(); err != nil {
+		file.Write([]byte(fmt.Sprintf("Eroate la rularea serverului %s\n", err)))
+	}
 }

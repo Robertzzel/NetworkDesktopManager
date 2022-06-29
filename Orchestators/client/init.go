@@ -31,7 +31,7 @@ type Client struct {
 	isRunning             bool
 }
 
-func NewClient(serverAddress string, imageDisplayerAddress string, loggerFile *os.File) (Client, error) {
+func NewClient(serverAddress string, imageDisplayerAddress string, loggerFile *os.File) Client {
 	context, _ := zmq.NewContext()
 	socketImageDisplayer, _ := context.NewSocket(zmq.PAIR)
 	socketSoundPlayer, _ := context.NewSocket(zmq.PUSH)
@@ -46,33 +46,39 @@ func NewClient(serverAddress string, imageDisplayerAddress string, loggerFile *o
 		SocketInputGenerator:  socketInputGenerator,
 		isRunning:             false,
 		SocketServer:          communication.TCPConnection{},
-	}, nil
+	}
 }
 
-func (cl *Client) Start() {
-	cl.SocketImageDisplayer.Connect(fmt.Sprintf("tcp://%s", cl.imageDisplayerAddress))
-	cl.SocketSoundPlayer.Bind("tcp://*:6111")
-	cl.SocketInputGenerator.Bind("tcp://*:6222")
+func (cl *Client) Start() error {
+	defer cl.Stop()
+	if err := cl.SocketImageDisplayer.Connect(fmt.Sprintf("tcp://%s", cl.imageDisplayerAddress)); err != nil {
+		return err
+	}
+	if err := cl.SocketSoundPlayer.Bind("tcp://*:6111"); err != nil {
+		return err
+	}
+	if err := cl.SocketInputGenerator.Bind("tcp://*:6222"); err != nil {
+		return err
+	}
 
-	cl.loggerFile.Write([]byte("Connecting to server..\n"))
+	cl.log("Connecting to server..\n")
 	connection, err := net.Dial("tcp", cl.ServerAddress)
 	if err != nil {
-		cl.loggerFile.Write([]byte(fmt.Sprintf("Cannot connect to server %s", err)))
-		cl.Stop()
-		return
+		cl.log(fmt.Sprintf("Cannot connect to server %s", err))
+		return err
 	}
-	cl.SocketServer = communication.TCPConnection{connection}
-	cl.loggerFile.Write([]byte("Connected...\n"))
+	cl.SocketServer = communication.TCPConnection{Conn: connection}
 
 	cl.isRunning = true
-
 	if err := cl.startProcesses(); err != nil {
-		cl.loggerFile.Write([]byte(fmt.Sprintln(err)))
-		cl.Stop()
-		return
+		cl.log(fmt.Sprintln(err))
+		return err
+	}
+	if err := cl.routeMessages(); err != nil {
+		return err
 	}
 
-	cl.routeMessages()
+	return nil
 }
 
 func (cl *Client) startProcesses() error {
@@ -87,21 +93,31 @@ func (cl *Client) startProcesses() error {
 		return errors.New("processes cannot be open, one of the file does not exists")
 	}
 
-	cl.Processes = append(cl.Processes, startPythonProcess([]string{soundPlayerPath.ToString(), "6111"}))
-	cl.Processes = append(cl.Processes, startPythonProcess([]string{inputGeneratorPath.ToString(), "6222"}))
+	audioPlayerProcess, err := startPythonProcess([]string{soundPlayerPath.ToString(), "6111"})
+	if err != nil {
+		return err
+	}
+	inputGeneratorProcess, err := startPythonProcess([]string{inputGeneratorPath.ToString(), "6222"})
+	if err != nil {
+		return err
+	}
 
+	cl.Processes = append(cl.Processes, audioPlayerProcess, inputGeneratorProcess)
 	return nil
 }
 
-func startPythonProcess(argv []string) *os.Process {
+func startPythonProcess(argv []string) (*os.Process, error) {
 	cmd := exec.Command(EnvInterpretorPath.ToString(), argv...)
-	cmd.Start()
-	return cmd.Process
+
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+	return cmd.Process, nil
 }
 
-func (cl *Client) routeMessages() {
-	defer cl.Stop()
-	go cl.receiveImagesAndAudio()
+func (cl *Client) routeMessages() error {
+	errorOutputImagesAndAudio := make(chan error)
+	go cl.receiveImagesAndAudio(errorOutputImagesAndAudio)
 
 	poller := zmq.NewPoller()
 	poller.Add(cl.SocketInputGenerator, zmq.POLLIN)
@@ -109,8 +125,8 @@ func (cl *Client) routeMessages() {
 	for cl.isRunning {
 		sockets, err := poller.Poll(time.Second)
 		if err != nil {
-			cl.loggerFile.Write([]byte(fmt.Sprintln("Eroare la poll ", err)))
-			break
+			cl.log(fmt.Sprintln("Eroare la poll ", err))
+			return err
 		}
 
 		for _, socket := range sockets {
@@ -120,20 +136,21 @@ func (cl *Client) routeMessages() {
 			switch s {
 			case cl.SocketInputGenerator:
 				cl.SocketServer.Send(msg, padding)
-				cl.loggerFile.Write([]byte(fmt.Sprintf("Sending to port %s\n", cl.ServerAddress)))
 			}
 		}
 	}
+	return <-errorOutputImagesAndAudio
 }
 
-func (cl *Client) receiveImagesAndAudio() {
+func (cl *Client) receiveImagesAndAudio(output chan error) {
 	var imageByte, audioByte = byte('0'), byte('1')
 
 	for cl.isRunning {
 		message, err := cl.SocketServer.Receive(padding)
 		if err != nil {
-			cl.loggerFile.Write([]byte(fmt.Sprintln("Error receiving image or sound ", err)))
-			break
+			cl.log(fmt.Sprintln("Error receiving image or sound ", err))
+			output <- err
+			return
 		}
 
 		switch message[0] {
@@ -143,14 +160,19 @@ func (cl *Client) receiveImagesAndAudio() {
 			cl.SocketSoundPlayer.Send(string(message[1:]), zmq.DONTWAIT)
 		}
 	}
+	output <- nil
 }
 
 func (cl *Client) Stop() {
 	cl.isRunning = false
 
 	for _, process := range cl.Processes {
-		process.Signal(syscall.SIGINT)
-		cl.loggerFile.Write([]byte(fmt.Sprintf("Inchis %d\n", process.Pid)))
+
+		if err := process.Signal(syscall.SIGINT); err != nil {
+			cl.log(fmt.Sprintf("Procesul %d nu s-a putut inchide\n", process.Pid))
+		} else {
+			cl.log(fmt.Sprintf("Inchis %d\n", process.Pid))
+		}
 	}
 
 	cl.SocketInputGenerator.Close()
@@ -162,6 +184,10 @@ func (cl *Client) Stop() {
 	}
 }
 
+func (cl *Client) log(msg string) {
+	cl.loggerFile.Write([]byte(msg))
+}
+
 func main() {
 	file, _ := os.Create("/home/robert/Desktop/clientLog.txt")
 
@@ -170,10 +196,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	cl, err := NewClient(os.Args[1], os.Args[2], file)
-	if err != nil {
-		file.Write([]byte(fmt.Sprintf("Clientul nu s-a activat %s", err)))
-	}
+	cl := NewClient(os.Args[1], os.Args[2], file)
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT)
@@ -183,5 +206,7 @@ func main() {
 		cl.Stop()
 	}()
 
-	cl.Start()
+	if err := cl.Start(); err != nil {
+		return
+	}
 }

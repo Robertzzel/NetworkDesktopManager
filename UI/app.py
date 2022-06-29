@@ -1,4 +1,5 @@
-import sys, zmq, zmq.sugar
+import sys, zmq, zmq.sugar, sys, pathlib
+sys.path.append(str(pathlib.Path(__file__).absolute().parent.parent))
 from Tools.screenshot_tool import ScreenshotTool
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import QThreadPool

@@ -139,9 +139,31 @@ func startPythonProcess(argv []string) (*os.Process, error) {
 }
 
 func (sv *ApplicationServer) routeMessages() error {
-	errorClientInputs := make(chan error)
-	go sv.handleClientInputs(errorClientInputs)
+	//errorClientInputs := make(chan error)
+	//go sv.handleReceivingMessages(errorClientInputs)
 
+	if err := sv.handleSendingMessages(); err != nil {
+		return err
+	}
+
+	return nil //<-errorClientInputs
+}
+
+func (sv *ApplicationServer) handleReceivingMessages(output chan error) {
+	for sv.isRunning {
+		command, err := sv.clientConnection.Receive(padding)
+		if err != nil {
+			sv.log(fmt.Sprintln("client inchis, nu mai pot primi comenzi ", err))
+			output <- err
+			return
+		}
+
+		sv.socketInputExecutor.Send(string(command), zmq.DONTWAIT)
+	}
+	output <- nil
+}
+
+func (sv *ApplicationServer) handleSendingMessages() error {
 	poller := zmq.NewPoller()
 	poller.Add(sv.socketImageGenerator, zmq.POLLIN)
 	poller.Add(sv.socketSoundGenerator, zmq.POLLIN)
@@ -168,22 +190,7 @@ func (sv *ApplicationServer) routeMessages() error {
 			}
 		}
 	}
-
-	return <-errorClientInputs
-}
-
-func (sv *ApplicationServer) handleClientInputs(output chan error) {
-	for sv.isRunning {
-		command, err := sv.clientConnection.Receive(padding)
-		if err != nil {
-			sv.log(fmt.Sprintln("client inchis, nu mai pot primi comenzi ", err))
-			output <- err
-			return
-		}
-
-		sv.socketInputExecutor.Send(string(command), zmq.DONTWAIT)
-	}
-	output <- nil
+	return nil
 }
 
 func (sv *ApplicationServer) Stop() {

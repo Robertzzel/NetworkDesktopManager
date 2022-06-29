@@ -144,20 +144,21 @@ func (cl *Client) routeMessages() error {
 
 func (cl *Client) receiveImagesAndAudio(output chan error) {
 	var imageByte, audioByte = byte('0'), byte('1')
+	buffer := make([]byte, 110_000)
 
 	for cl.isRunning {
-		message, err := cl.SocketServer.Receive(padding)
+		n, err := cl.SocketServer.ReceiveBuffer(padding, buffer)
 		if err != nil {
 			cl.log(fmt.Sprintln("Error receiving image or sound ", err))
 			output <- err
 			return
 		}
 
-		switch message[0] {
+		switch buffer[0] {
 		case imageByte:
-			cl.SocketImageDisplayer.Send(string(message[1:]), zmq.DONTWAIT)
+			cl.SocketImageDisplayer.Send(string(buffer[1:n]), zmq.DONTWAIT)
 		case audioByte:
-			cl.SocketSoundPlayer.Send(string(message[1:]), zmq.DONTWAIT)
+			cl.SocketSoundPlayer.Send(string(buffer[1:n]), zmq.DONTWAIT)
 		}
 	}
 	output <- nil
